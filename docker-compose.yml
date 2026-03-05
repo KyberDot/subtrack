@@ -1,0 +1,23 @@
+services:
+  subtrack:
+    build: .
+    container_name: subtrack
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3210:3000"
+    environment:
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DB_PATH=/data
+    volumes:
+      - subtrack_data:/data
+    networks:
+      - your-network
+
+volumes:
+  subtrack_data:
+
+networks:
+  your-network:
+    external: true
