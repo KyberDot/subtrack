@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 
 const DB_DIR = process.env.DB_PATH || "/data";
-const DB_FILE = path.join(DB_DIR, "subtrack.db");
+const DB_FILE = path.join(DB_DIR, "nexyo.db");
 if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
 
 let _db: Database.Database | null = null;

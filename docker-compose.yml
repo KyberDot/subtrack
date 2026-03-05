@@ -1,7 +1,7 @@
 services:
-  subtrack:
+  nexyo:
     build: .
-    container_name: subtrack
+    container_name: nexyo
     restart: unless-stopped
     ports:
       - "127.0.0.1:3210:3000"
@@ -11,12 +11,12 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - DB_PATH=/data
     volumes:
-      - subtrack_data:/data
+      - nexyo_data:/data
     networks:
       - your-network
 
 volumes:
-  subtrack_data:
+  nexyo_data:
 
 networks:
   your-network:
