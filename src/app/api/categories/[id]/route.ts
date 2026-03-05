@@ -1,0 +1,32 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getDb } from "@/lib/db";
+
+async function uid() {
+  const s = await getServerSession(authOptions);
+  return s?.user ? Number((s.user as any).id) : null;
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const userId = await uid();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const body = await req.json();
+  const db = getDb();
+  const updates: string[] = []; const values: any[] = [];
+  for (const f of ["name", "icon", "color", "budget"]) {
+    if (f in body) { updates.push(`${f} = ?`); values.push(body[f]); }
+  }
+  if (!updates.length) return NextResponse.json({ error: "No fields" }, { status: 400 });
+  values.push(params.id, userId);
+  db.prepare(`UPDATE user_categories SET ${updates.join(", ")} WHERE id = ? AND user_id = ?`).run(...values);
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const userId = await uid();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const db = getDb();
+  db.prepare("DELETE FROM user_categories WHERE id = ? AND user_id = ?").run(params.id, userId);
+  return NextResponse.json({ ok: true });
+}

@@ -5,7 +5,7 @@ import { getDb } from "@/lib/db";
 
 export async function GET() {
   const db = getDb();
-  const p = db.prepare("SELECT * FROM platform_settings WHERE id = 1").get();
+  const p = db.prepare("SELECT app_name, logo, favicon, primary_color, allow_registration FROM platform_settings WHERE id = 1").get();
   return NextResponse.json(p || {});
 }
 
@@ -16,18 +16,13 @@ export async function PATCH(req: NextRequest) {
   const user = db.prepare("SELECT role FROM users WHERE id = ?").get((session.user as any).id) as any;
   if (user?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await req.json();
-  const fields = ["app_name", "logo", "primary_color", "allow_registration"];
-  const updates: string[] = [];
-  const values: any[] = [];
+  const fields = ["app_name","logo","favicon","primary_color","allow_registration","mail_host","mail_port","mail_user","mail_pass","mail_from","mail_secure"];
+  const updates: string[] = []; const values: any[] = [];
   for (const f of fields) {
-    if (f in body) {
-      updates.push(`${f} = ?`);
-      values.push(typeof body[f] === "boolean" ? (body[f] ? 1 : 0) : body[f]);
-    }
+    if (f in body) { updates.push(`${f} = ?`); values.push(typeof body[f] === "boolean" ? (body[f] ? 1 : 0) : body[f]); }
   }
-  if (updates.length) {
-    updates.push("updated_at = datetime('now')");
-    db.prepare(`UPDATE platform_settings SET ${updates.join(", ")} WHERE id = 1`).run(...values);
-  }
+  if (!updates.length) return NextResponse.json({ error: "No fields" }, { status: 400 });
+  updates.push("updated_at = datetime('now')"); values.push(1);
+  db.prepare(`UPDATE platform_settings SET ${updates.join(", ")} WHERE id = ?`).run(...values);
   return NextResponse.json({ ok: true });
 }

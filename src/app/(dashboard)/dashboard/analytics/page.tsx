@@ -1,111 +1,173 @@
 "use client";
 import { useMemo } from "react";
-import { useSettings } from "@/lib/SettingsContext";
 import { useSubscriptions } from "@/lib/useSubscriptions";
-import { toMonthly, fmt, CAT_COLORS } from "@/types";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Cell, PieChart, Pie } from "recharts";
+import { useSettings } from "@/lib/SettingsContext";
+import { toMonthly, fmt, daysUntil, convertAmount } from "@/types";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
 
 export default function AnalyticsPage() {
-  const { subs, loading } = useSubscriptions();
-  const { currencySymbol } = useSettings();
-  const activeSubs = subs.filter(s => s.active);
-  const monthlyTotal = activeSubs.reduce((a, s) => a + toMonthly(s.amount, s.cycle), 0);
+  const { subs } = useSubscriptions();
+  const { currencySymbol, convertToDisplay, categories, settings } = useSettings();
 
-  const catBreakdown = useMemo(() => {
+  const activeSubs = subs.filter(s => s.active && s.type !== "bill");
+  const activeBills = subs.filter(s => s.active && s.type === "bill");
+
+  const monthly = (s: any) => convertToDisplay(toMonthly(s.amount, s.cycle), s.currency);
+  const monthlyTotal = activeSubs.reduce((a, s) => a + monthly(s), 0);
+  const billsTotal = activeBills.reduce((a, s) => a + monthly(s), 0);
+
+  const catData = useMemo(() => {
+    const map: Record<string, { spend: number, count: number, color: string, icon: string }> = {};
+    for (const s of activeSubs) {
+      const catName = s.category?.replace(/^[^\s]+ /, '') || s.category || "Other";
+      const cat = categories.find(c => c.name === catName || s.category?.includes(c.name)) || categories.find(c => c.name === "Other");
+      if (!map[catName]) map[catName] = { spend: 0, count: 0, color: cat?.color || "#94A3B8", icon: cat?.icon || "📦" };
+      map[catName].spend += monthly(s);
+      map[catName].count++;
+    }
+    return Object.entries(map).map(([name, v]) => ({ name, ...v, spend: +v.spend.toFixed(2) })).sort((a, b) => b.spend - a.spend);
+  }, [subs, settings.currency, categories]);
+
+  const cycleData = useMemo(() => {
     const map: Record<string, number> = {};
-    activeSubs.forEach(s => { map[s.category] = (map[s.category] || 0) + toMonthly(s.amount, s.cycle); });
-    return Object.entries(map).map(([name, value]) => ({ name, value: +value.toFixed(2), color: CAT_COLORS[name] || "#94A3B8" })).sort((a, b) => b.value - a.value);
-  }, [subs]);
+    for (const s of activeSubs) { map[s.cycle] = (map[s.cycle] || 0) + monthly(s); }
+    return Object.entries(map).map(([name, value]) => ({ name, value: +value.toFixed(2) }));
+  }, [subs, settings.currency]);
 
-  const monthlyData = useMemo(() => {
-    const months = ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb"];
-    return months.map((m, i) => ({ month: m, amount: +(monthlyTotal * (0.78 + i * 0.044)).toFixed(2) }));
-  }, [monthlyTotal]);
+  const trendData = useMemo(() => {
+    const months = ["Aug","Sep","Oct","Nov","Dec","Jan"];
+    return months.map((m, i) => ({ month: m, subscriptions: +(monthlyTotal * (0.82 + i * 0.036)).toFixed(2), bills: +(billsTotal * (0.9 + i * 0.02)).toFixed(2) }));
+  }, [monthlyTotal, billsTotal]);
 
-  const duplicates = useMemo(() => {
-    const byCategory: Record<string, typeof subs> = {};
-    activeSubs.forEach(s => { (byCategory[s.category] = byCategory[s.category] || []).push(s); });
-    return Object.entries(byCategory).filter(([, arr]) => arr.length >= 3);
-  }, [subs]);
+  const upcoming7 = activeSubs.filter(s => s.next_date && daysUntil(s.next_date) <= 7 && daysUntil(s.next_date) >= 0).length;
+  const trials = activeSubs.filter(s => s.trial).length;
+  const topSub = [...activeSubs].sort((a, b) => monthly(b) - monthly(a))[0];
+  const avgPerSub = activeSubs.length > 0 ? monthlyTotal / activeSubs.length : 0;
 
-  if (loading) return <div style={{ color: "var(--muted)" }}>Loading...</div>;
+  const COLORS = catData.map(c => c.color);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }} className="fade-in">
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }} className="fade-in">
       <h1 style={{ fontSize: 22, fontWeight: 700 }}>Analytics</h1>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+      {/* KPIs */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
         {[
-          { label: "Monthly", value: `$${fmt(monthlyTotal)}`, color: "#6366F1" },
-          { label: "Yearly", value: `$${fmt(monthlyTotal * 12)}`, color: "#10B981" },
-          { label: "Avg/Sub", value: `$${fmt(monthlyTotal / (activeSubs.length || 1))}`, color: "#F59E0B" },
-        ].map(s => (
-          <div key={s.label} className="card">
-            <div style={{ fontSize: 12, color: "var(--muted)" }}>{s.label}</div>
-            <div style={{ fontSize: 26, fontWeight: 700, color: s.color, marginTop: 4 }}>{s.value}</div>
+          { label: "Monthly (Subs)", value: `${currencySymbol}${fmt(monthlyTotal)}`, sub: `${activeSubs.length} subscriptions`, color: "var(--accent)" },
+          { label: "Monthly (Bills)", value: `${currencySymbol}${fmt(billsTotal)}`, sub: `${activeBills.length} bills`, color: "#F59E0B" },
+          { label: "Yearly Total", value: `${currencySymbol}${fmt((monthlyTotal + billsTotal) * 12)}`, sub: "Subs + bills", color: "#10B981" },
+          { label: "Avg per Sub", value: `${currencySymbol}${fmt(avgPerSub)}`, sub: "per month", color: "#8B5CF6" },
+          { label: "Due in 7 days", value: String(upcoming7), sub: "renewals upcoming", color: "#EF4444" },
+          { label: "Free Trials", value: String(trials), sub: "active trials", color: "#F97316" },
+        ].map(({ label, value, sub, color }) => (
+          <div key={label} className="card">
+            <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{label}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color }}>{value}</div>
+            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3 }}>{sub}</div>
           </div>
         ))}
       </div>
 
+      {/* Charts row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        {/* Spend by category bar */}
         <div className="card">
-          <div style={{ fontWeight: 600, marginBottom: 16 }}>Spend by Category</div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={catBreakdown} layout="vertical">
-              <XAxis type="number" tick={{ fontSize: 11, fill: "var(--muted)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "var(--muted)" }} axisLine={false} tickLine={false} width={85} />
-              <Tooltip formatter={(v: any) => [`$${fmt(v)}`, "Monthly"]} contentStyle={{ background: "var(--surface)", border: "1px solid var(--border-color)", borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="value" radius={4}>{catBreakdown.map((e, i) => <Cell key={i} fill={e.color} />)}</Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Spending by Category</div>
+          {catData.length === 0 ? <div style={{ color: "var(--muted)", textAlign: "center", padding: 24 }}>No data yet</div> : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={catData} layout="vertical" margin={{ left: 0, right: 10 }}>
+                <XAxis type="number" tick={{ fontSize: 11, fill: "var(--muted)" }} axisLine={false} tickLine={false} tickFormatter={v => `${currencySymbol}${v}`} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "var(--muted)" }} axisLine={false} tickLine={false} width={90} />
+                <Tooltip formatter={(v: any) => [`${currencySymbol}${v}`, "Monthly"]} contentStyle={{ background: "var(--surface)", border: "1px solid var(--border-color)", borderRadius: 8, fontSize: 12 }} />
+                <Bar dataKey="spend" radius={4}>
+                  {catData.map((c, i) => <Cell key={i} fill={c.color} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
+        {/* Pie chart */}
         <div className="card">
-          <div style={{ fontWeight: 600, marginBottom: 16 }}>Monthly Trend</div>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={monthlyData}>
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--muted)" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--muted)" }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-              <Tooltip formatter={(v: any) => [`$${v}`, "Spend"]} contentStyle={{ background: "var(--surface)", border: "1px solid var(--border-color)", borderRadius: 8, fontSize: 12 }} />
-              <Line type="monotone" dataKey="amount" stroke="#6366F1" strokeWidth={2.5} dot={{ fill: "#6366F1", r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Category Distribution</div>
+          {catData.length === 0 ? <div style={{ color: "var(--muted)", textAlign: "center", padding: 24 }}>No data yet</div> : (
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <ResponsiveContainer width={160} height={160}>
+                <PieChart>
+                  <Pie data={catData} dataKey="spend" cx="50%" cy="50%" innerRadius={40} outerRadius={70}>
+                    {catData.map((c, i) => <Cell key={i} fill={c.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: any) => [`${currencySymbol}${Number(v).toFixed(2)}`, ""]} contentStyle={{ background: "var(--surface)", border: "1px solid var(--border-color)", borderRadius: 8, fontSize: 11 }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 5 }}>
+                {catData.slice(0, 6).map(c => (
+                  <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: c.color, flexShrink: 0 }} />
+                    <span style={{ flex: 1, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.icon} {c.name}</span>
+                    <span style={{ fontWeight: 600, flexShrink: 0 }}>{currencySymbol}{fmt(c.spend)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Trend line */}
       <div className="card">
-        <div style={{ fontWeight: 600, marginBottom: 12 }}>Top Subscriptions by Cost</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {[...activeSubs].sort((a, b) => toMonthly(b.amount, b.cycle) - toMonthly(a.amount, a.cycle)).slice(0, 8).map(s => {
-            const monthly = toMonthly(s.amount, s.cycle);
-            const pct = (monthly / monthlyTotal) * 100;
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>6-Month Spending Trend</div>
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={trendData}>
+            <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--muted)" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: "var(--muted)" }} axisLine={false} tickLine={false} tickFormatter={v => `${currencySymbol}${v}`} />
+            <Tooltip formatter={(v: any, n: string) => [`${currencySymbol}${v}`, n]} contentStyle={{ background: "var(--surface)", border: "1px solid var(--border-color)", borderRadius: 8, fontSize: 12 }} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Line type="monotone" dataKey="subscriptions" stroke="var(--accent)" strokeWidth={2.5} dot={false} />
+            <Line type="monotone" dataKey="bills" stroke="#F59E0B" strokeWidth={2.5} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Top subscriptions */}
+      <div className="card">
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Top Subscriptions by Cost</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          {[...activeSubs].sort((a, b) => monthly(b) - monthly(a)).slice(0, 8).map((s, i) => {
+            const pct = monthlyTotal > 0 ? (monthly(s) / monthlyTotal) * 100 : 0;
             return (
-              <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                {s.icon && <img src={s.icon} width={24} height={24} style={{ borderRadius: 4, background: "#fff", padding: 1 }} alt={s.name} onError={e => (e.currentTarget.style.display = "none")} />}
-                <span style={{ flex: 1, fontSize: 14 }}>{s.name}</span>
-                <div style={{ width: 120, height: 6, background: "var(--border-color)", borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ width: `${pct}%`, height: "100%", background: CAT_COLORS[s.category] || "#6366F1", borderRadius: 3 }} />
+              <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--border-color)" }}>
+                <span style={{ width: 20, fontSize: 12, color: "var(--muted)", fontWeight: 700, flexShrink: 0 }}>#{i+1}</span>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
+                  {s.icon ? <img src={s.icon} width={24} height={24} style={{ objectFit: "contain" }} alt={s.name} onError={e => (e.currentTarget.style.display="none")} /> : "📦"}
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 600, width: 60, textAlign: "right" }}>${fmt(monthly)}/mo</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{s.name}</div>
+                  <div style={{ height: 4, background: "var(--surface2)", borderRadius: 2, marginTop: 4, overflow: "hidden" }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: "var(--accent)", borderRadius: 2 }} />
+                  </div>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{currencySymbol}{fmt(monthly(s))}</div>
+                <div style={{ fontSize: 11, color: "var(--muted)", flexShrink: 0 }}>{pct.toFixed(0)}%</div>
               </div>
             );
           })}
         </div>
       </div>
 
-      {duplicates.length > 0 && (
-        <div className="card">
-          <div style={{ fontWeight: 600, marginBottom: 12 }}>⚠️ Potential Duplicates</div>
-          {duplicates.map(([cat, arr]) => (
-            <div key={cat} style={{ padding: 12, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, marginBottom: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#EF4444", marginBottom: 4 }}>{cat} — {arr.length} subscriptions</div>
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                {arr.map(s => <span key={s.id} style={{ fontSize: 12, color: "var(--muted)" }}>{s.name} (${s.amount}/{s.cycle})</span>)}
-              </div>
+      {/* Billing cycle breakdown */}
+      <div className="card">
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>By Billing Cycle</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
+          {cycleData.map(c => (
+            <div key={c.name} style={{ padding: "12px 14px", background: "var(--surface2)", borderRadius: 10 }}>
+              <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "capitalize", marginBottom: 4 }}>{c.name}</div>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>{currencySymbol}{fmt(c.value)}</div>
+              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>/month equiv.</div>
             </div>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
