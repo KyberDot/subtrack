@@ -126,7 +126,7 @@ export default function SubModal({ sub, defaultType = "subscription", onSave, on
   const sym = CURRENCIES.find(c => c.code === form.currency)?.code || "USD";
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, overflow: "hidden" }}
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(5px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, overflow: "hidden" }}
       onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 700, height: "min(92vh, 640px)", display: "flex", flexDirection: "column", overflow: "hidden", border: "1px solid var(--border-color)", boxShadow: "0 24px 60px rgba(0,0,0,0.4)" }}>
         
@@ -284,7 +284,7 @@ export default function SubModal({ sub, defaultType = "subscription", onSave, on
                     {(CYCLES as readonly string[]).map(c => (
                       <button key={c} type="button" onClick={() => set("cycle", c)}
                         style={{ padding: "9px 6px", borderRadius: 8, border: `1.5px solid ${form.cycle === c ? "var(--accent)" : "var(--border-color)"}`, background: form.cycle === c ? "rgba(var(--accent-rgb),0.08)" : "var(--surface2)", color: form.cycle === c ? "var(--accent)" : "var(--muted)", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
-                        {c === "6-months" ? "6 Months" : c === "variable" ? "Variable" : c.charAt(0).toUpperCase() + c.slice(1)}
+                        {{"weekly":"Weekly","monthly":"Monthly","quarterly":"Quarterly","6-months":"6 Months","yearly":"Yearly","variable":"Variable"}[c] || c}
                       </button>
                     ))}
                   </div>

@@ -20,7 +20,7 @@ const NAV = [
     { label: "Analytics", href: "/dashboard/analytics", icon: "📊" },
     { label: "Categories", href: "/dashboard/categories", icon: "🏷️" },
     { label: "Family", href: "/dashboard/family", icon: "👨‍👩‍👧" },
-    { label: "Payment Methods", href: "/dashboard/payments", icon: "💳" },
+    { label: "Wallet", href: "/dashboard/payments", icon: "👛" },
     { label: "Notifications", href: "/dashboard/notifications", icon: "🔔" },
     { label: "Shared Links", href: "/dashboard/shares", icon: "🔗" },
   ]},

@@ -5,6 +5,7 @@ import { useSettings } from "@/lib/SettingsContext";
 import { toMonthly, fmt, daysUntil, Subscription } from "@/types";
 import SubModal from "@/components/SubModal";
 import AttachmentsPanel from "@/components/AttachmentsPanel";
+import PaymentHistory from "@/components/PaymentHistory";
 import { useSearch } from "@/app/(dashboard)/layout";
 
 export default function SubscriptionsPage() {
@@ -12,6 +13,7 @@ export default function SubscriptionsPage() {
   const { currencySymbol, convertToDisplay, categories } = useSettings();
   const { search } = useSearch();
   const [showModal, setShowModal] = useState(false);
+  const [payHistorySub, setPayHistorySub] = useState<Subscription | null>(null);
   const [editSub, setEditSub] = useState<Subscription | null>(null);
   const [filterCat, setFilterCat] = useState("All");
   const [sortBy, setSortBy] = useState("name");
@@ -48,19 +50,6 @@ export default function SubscriptionsPage() {
   const active = allSubs.filter(s => s.active);
   const monthly = active.reduce((a, s) => a + convertToDisplay(toMonthly(s.amount, s.cycle), s.currency), 0);
   const upcoming7 = active.filter(s => s.next_date && daysUntil(s.next_date) <= 7 && daysUntil(s.next_date) >= 0).length;
-
-  const markPaid = async (s: Subscription) => {
-    if (!s.next_date) return;
-    const d = new Date(s.next_date);
-    const cycle = s.cycle;
-    if (cycle === "monthly") d.setMonth(d.getMonth() + 1);
-    else if (cycle === "yearly") d.setFullYear(d.getFullYear() + 1);
-    else if (cycle === "weekly") d.setDate(d.getDate() + 7);
-    else if (cycle === "quarterly") d.setMonth(d.getMonth() + 3);
-    else if (cycle === "6-months") d.setMonth(d.getMonth() + 6);
-    else return;
-    await update(s.id, { next_date: d.toISOString().split("T")[0] });
-  };
 
   if (loading && subs.length === 0) return <div style={{ color: "var(--muted)", padding: 24 }}>Loading...</div>;
 
@@ -99,8 +88,8 @@ export default function SubscriptionsPage() {
         <span style={{ fontSize: 13, color: "var(--muted)", marginLeft: "auto" }}>{filtered.length} result{filtered.length !== 1 ? "s" : ""}</span>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 110px", padding: "9px 16px", borderBottom: "1px solid var(--border-color)", background: "var(--surface2)" }}>
+      <div className="card" style={{ padding: 0, overflow: "hidden", minWidth: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 88px", padding: "9px 16px", borderBottom: "1px solid var(--border-color)", background: "var(--surface2)" }}>
           {["Service","Category","Payment","Amount","Next Billing",""].map(h => <div key={h} style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{h}</div>)}
         </div>
         {filtered.length === 0 ? (
@@ -116,7 +105,7 @@ export default function SubscriptionsPage() {
           const isOverdue = days !== null && days < 0;
           const isSoon = days !== null && days >= 0 && days <= 3;
           return (
-            <div key={s.id} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 110px", padding: "11px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--border-color)" : "none", alignItems: "center", opacity: s.active ? 1 : 0.55 }}
+            <div key={s.id} style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 88px", padding: "11px 16px", borderBottom: i < filtered.length - 1 ? "1px solid var(--border-color)" : "none", alignItems: "center", opacity: s.active ? 1 : 0.55 }}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--surface2)"}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
@@ -147,10 +136,8 @@ export default function SubscriptionsPage() {
                 <div onClick={() => update(s.id, { active: !s.active })} title={s.active ? "Deactivate" : "Activate"} style={{ width: 30, height: 17, borderRadius: 9, background: s.active ? "var(--accent)" : "var(--border-color)", cursor: "pointer", position: "relative", flexShrink: 0 }}>
                   <div style={{ position: "absolute", top: 2, left: s.active ? 15 : 2, width: 13, height: 13, borderRadius: 7, background: "white", transition: "left 0.18s" }} />
                 </div>
-                {/* Mark paid */}
-                {s.next_date && s.cycle !== "variable" && (
-                  <button onClick={() => markPaid(s)} title="Mark as paid" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 13, padding: "2px 3px", lineHeight: 1 }}>✓</button>
-                )}
+
+                <button onClick={() => setPayHistorySub(s)} title="Payment history" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 13, padding: "2px 3px", lineHeight: 1 }}>💰</button>
                 <AttachmentsPanel subId={s.id} label="" />
                 <button style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 13, padding: "2px 3px" }} onClick={() => { setEditSub(s); setShowModal(true); }}>✏️</button>
                 <button style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 13, padding: "2px 3px" }} onClick={() => { if (confirm(`Delete ${s.name}?`)) remove(s.id); }}>🗑️</button>
@@ -159,6 +146,7 @@ export default function SubscriptionsPage() {
           );
         })}
       </div>
+      {payHistorySub && <PaymentHistory sub={payHistorySub} onClose={() => setPayHistorySub(null)} />}
       {showModal && <SubModal sub={editSub} defaultType="subscription" familyMembers={familyMembers} paymentMethods={paymentMethods} onSave={async (data) => { editSub ? await update(editSub.id, data) : await add(data); setShowModal(false); setEditSub(null); }} onClose={() => { setShowModal(false); setEditSub(null); }} />}
     </div>
   );

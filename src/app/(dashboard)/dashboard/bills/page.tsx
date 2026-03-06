@@ -5,6 +5,7 @@ import { toMonthly, fmt, daysUntil, Subscription } from "@/types";
 import { useState, useEffect, useMemo } from "react";
 import SubModal from "@/components/SubModal";
 import AttachmentsPanel from "@/components/AttachmentsPanel";
+import PaymentHistory from "@/components/PaymentHistory";
 import { useSearch } from "@/app/(dashboard)/layout";
 
 export default function BillsPage() {
@@ -12,6 +13,7 @@ export default function BillsPage() {
   const { subs, loading, add, update, remove } = useSubscriptions();
   const { search } = useSearch();
   const [showModal, setShowModal] = useState(false);
+  const [payHistorySub, setPayHistorySub] = useState<Subscription | null>(null);
   const [editBill, setEditBill] = useState<Subscription | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [sortBy, setSortBy] = useState("date");
@@ -45,18 +47,6 @@ export default function BillsPage() {
   const monthly = active.reduce((a, b) => a + convertToDisplay(toMonthly(b.amount, b.cycle), b.currency), 0);
   const overdue = active.filter(b => b.next_date && daysUntil(b.next_date) < 0).length;
   const dueSoon = active.filter(b => b.next_date && daysUntil(b.next_date) >= 0 && daysUntil(b.next_date) <= 3).length;
-
-  const markPaid = async (b: Subscription) => {
-    if (!b.next_date) return;
-    const d = new Date(b.next_date);
-    if (b.cycle === "monthly") d.setMonth(d.getMonth() + 1);
-    else if (b.cycle === "yearly") d.setFullYear(d.getFullYear() + 1);
-    else if (b.cycle === "weekly") d.setDate(d.getDate() + 7);
-    else if (b.cycle === "quarterly") d.setMonth(d.getMonth() + 3);
-    else if (b.cycle === "6-months") d.setMonth(d.getMonth() + 6);
-    else return;
-    await update(b.id, { next_date: d.toISOString().split("T")[0] });
-  };
 
   if (loading && bills.length === 0) return <div style={{ color: "var(--muted)", padding: 24 }}>Loading...</div>;
 
@@ -141,9 +131,7 @@ export default function BillsPage() {
                 <div onClick={() => update(b.id, { active: !b.active })} title={b.active ? "Deactivate" : "Activate"} style={{ width: 30, height: 17, borderRadius: 9, background: b.active ? "var(--accent)" : "var(--border-color)", cursor: "pointer", position: "relative", flexShrink: 0 }}>
                   <div style={{ position: "absolute", top: 2, left: b.active ? 15 : 2, width: 13, height: 13, borderRadius: 7, background: "white", transition: "left 0.18s" }} />
                 </div>
-                {b.next_date && b.cycle !== "variable" && (
-                  <button onClick={() => markPaid(b)} title="Mark as paid" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 14, padding: "2px 2px", lineHeight: 1 }}>✓</button>
-                )}
+<button onClick={() => setPayHistorySub(b)} title="Payment history" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 13, padding: "2px 2px", lineHeight: 1 }}>💰</button>
                 <AttachmentsPanel subId={b.id} label="" />
                 <button style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 13, padding: "2px 2px" }} onClick={() => { setEditBill(b); setShowModal(true); }}>✏️</button>
                 <button style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 13, padding: "2px 2px" }} onClick={() => { if (confirm(`Delete ${b.name}?`)) remove(b.id); }}>🗑️</button>
@@ -152,6 +140,7 @@ export default function BillsPage() {
           );
         })}
       </div>
+      {payHistorySub && <PaymentHistory sub={payHistorySub} onClose={() => setPayHistorySub(null)} />}
       {showModal && <SubModal sub={editBill} defaultType="bill" familyMembers={familyMembers} paymentMethods={paymentMethods} onSave={async (data) => { editBill ? await update(editBill.id, data) : await add(data); setShowModal(false); setEditBill(null); }} onClose={() => { setShowModal(false); setEditBill(null); }} />}
     </div>
   );

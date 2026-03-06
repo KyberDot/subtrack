@@ -55,7 +55,7 @@ export const DEFAULT_CATEGORIES: UserCategory[] = [
   { id: -12, user_id: 0, name: "Other", icon: "📦", color: "#94A3B8", budget: 0 },
 ];
 
-export const CYCLES = ["monthly", "yearly", "weekly", "quarterly", "6-months", "variable"] as const;
+export const CYCLES = ["weekly", "monthly", "quarterly", "6-months", "yearly", "variable"] as const;
 
 export const EXCHANGE_RATES: Record<string, number> = {
   USD: 1, EUR: 0.92, GBP: 0.79, CAD: 1.36, AUD: 1.53, EGP: 48.5, JPY: 149, INR: 83

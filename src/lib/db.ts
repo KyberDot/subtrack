@@ -49,6 +49,15 @@ function migrate(db: Database.Database) {
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
+    CREATE TABLE IF NOT EXISTS payment_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      sub_id INTEGER NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
+      amount REAL,
+      currency TEXT DEFAULT 'USD',
+      paid_at TEXT DEFAULT (datetime('now')),
+      note TEXT
+    );
     CREATE TABLE IF NOT EXISTS attachments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

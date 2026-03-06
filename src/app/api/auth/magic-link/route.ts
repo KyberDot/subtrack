@@ -16,11 +16,16 @@ export async function POST(req: NextRequest) {
   if (platform.mail_host) {
     try {
       const nodemailer = require("nodemailer");
+      const port = Number(platform.mail_port) || 587;
+      // secure=true only for port 465 (SSL); port 587/25 use STARTTLS (secure=false + requireTLS)
+      const isSSL = port === 465 || !!platform.mail_secure;
       const transporter = nodemailer.createTransport({
         host: platform.mail_host,
-        port: Number(platform.mail_port) || 587,
-        secure: !!platform.mail_secure,
+        port,
+        secure: isSSL,
+        ...(isSSL ? {} : { requireTLS: true }),
         auth: platform.mail_user ? { user: platform.mail_user, pass: platform.mail_pass } : undefined,
+        tls: { rejectUnauthorized: false },
       });
       await transporter.sendMail({
         from: platform.mail_from || `${platform.app_name || "Vexyo"} <noreply@vexyo.app>`,
@@ -30,7 +35,6 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({ ok: true, sent: true });
     } catch (e: any) {
-      // Return link so admin can debug, but also show error
       return NextResponse.json({ ok: true, sent: false, link, mailError: e.message });
     }
   }

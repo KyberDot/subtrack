@@ -104,7 +104,7 @@ export default function FamilyPage() {
       )}
 
       {showModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, overflow: "hidden" }}
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(5px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, overflow: "hidden" }}
           onClick={() => setShowModal(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", overflow: "hidden", border: "1px solid var(--border-color)", boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}>
             <div style={{ padding: "18px 22px 16px", borderBottom: "1px solid var(--border-color)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -112,15 +112,24 @@ export default function FamilyPage() {
               <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 18, cursor: "pointer" }}>✕</button>
             </div>
             <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
-              {/* Avatar */}
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <div style={{ width: 56, height: 56, borderRadius: 99, background: form.color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "white", fontSize: 22, overflow: "hidden", cursor: "pointer", flexShrink: 0 }} onClick={() => fileRef.current?.click()}>
-                  {form.avatar && MEMBER_EMOJIS.includes(form.avatar) ? <span style={{ fontSize: 24 }}>{form.avatar}</span> : form.avatar ? <img src={form.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" /> : (form.name[0] || "?").toUpperCase()}
+              {/* Avatar preview + emoji picker + upload */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 8, display: "block" }}>ICON / PHOTO</label>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 10 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 99, background: form.color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "white", fontSize: 22, overflow: "hidden", flexShrink: 0 }}>
+                    {form.avatar && MEMBER_EMOJIS.includes(form.avatar) ? <span style={{ fontSize: 26 }}>{form.avatar}</span> : form.avatar ? <img src={form.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" /> : (form.name[0] || "?").toUpperCase()}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleAvatarFile(e.target.files[0])} />
+                    <button className="btn-ghost" style={{ fontSize: 12, padding: "4px 10px" }} onClick={() => fileRef.current?.click()}>📷 Upload Photo</button>
+                    {form.avatar && <button onClick={() => setForm(p => ({ ...p, avatar: "" }))} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 12 }}>✕ Remove</button>}
+                  </div>
                 </div>
-                <div>
-                  <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleAvatarFile(e.target.files[0])} />
-                  <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => fileRef.current?.click()}>Upload Photo</button>
-                  {form.avatar && <button onClick={() => setForm(p => ({ ...p, avatar: "" }))} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 12, marginLeft: 8 }}>Remove</button>}
+                {/* Emoji icons */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                  {MEMBER_EMOJIS.map(em => (
+                    <button key={em} onClick={() => setForm(p => ({ ...p, avatar: p.avatar === em ? "" : em }))} style={{ width: 34, height: 34, border: form.avatar === em ? "2px solid var(--accent)" : "1px solid var(--border-color)", borderRadius: 8, background: form.avatar === em ? "rgba(var(--accent-rgb),0.1)" : "var(--surface2)", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>{em}</button>
+                  ))}
                 </div>
               </div>
               <div>

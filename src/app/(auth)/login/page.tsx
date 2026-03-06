@@ -1,12 +1,18 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 function LoginContent() {
   const router = useRouter();
   const params = useSearchParams();
+  const { data: session, status } = useSession();
+  
+  // Redirect if already logged in
+  useEffect(() => {
+    if (status === "authenticated") router.replace("/dashboard");
+  }, [status]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
