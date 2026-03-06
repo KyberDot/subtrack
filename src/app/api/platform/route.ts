@@ -5,7 +5,7 @@ import { getDb } from "@/lib/db";
 
 export async function GET() {
   const db = getDb();
-  const p = db.prepare("SELECT app_name, logo, favicon, primary_color, allow_registration FROM platform_settings WHERE id = 1").get();
+  const p = db.prepare("SELECT app_name, logo, favicon, primary_color, allow_registration, magic_link_enabled FROM platform_settings WHERE id = 1").get();
   return NextResponse.json(p || {});
 }
 
@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest) {
   const user = db.prepare("SELECT role FROM users WHERE id = ?").get((session.user as any).id) as any;
   if (user?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await req.json();
-  const fields = ["app_name","logo","favicon","primary_color","allow_registration","mail_host","mail_port","mail_user","mail_pass","mail_from","mail_secure"];
+  const fields = ["app_name","logo","favicon","primary_color","allow_registration","magic_link_enabled","mail_host","mail_port","mail_user","mail_pass","mail_from","mail_secure"];
   const updates: string[] = []; const values: any[] = [];
   for (const f of fields) {
     if (f in body) { updates.push(`${f} = ?`); values.push(typeof body[f] === "boolean" ? (body[f] ? 1 : 0) : body[f]); }

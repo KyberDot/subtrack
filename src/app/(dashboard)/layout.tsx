@@ -203,30 +203,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "none"; (e.currentTarget as HTMLElement).style.color = "var(--muted)"; (e.currentTarget as HTMLElement).style.borderColor = "var(--border-color)"; }}>
                 ↩
               </button>
-              <div ref={userMenuRef} style={{ position: "relative" }}>
-                <div onClick={() => setShowUserMenu(p => !p)}>
-                  <Avatar size={32} />
-                </div>
-                {showUserMenu && (
-                  <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "var(--surface)", border: "1px solid var(--border-color)", borderRadius: 10, overflow: "hidden", zIndex: 100, minWidth: 180 }}>
-                    <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--border-color)" }}>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{displayName}</div>
-                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{session.user?.email}</div>
-                    </div>
-                    {[{ href: "/dashboard/profile", icon: "👤", label: "Profile" }, { href: "/dashboard/settings", icon: "⚙️", label: "Settings" }].map(item => (
-                      <Link key={item.href} href={item.href} onClick={() => setShowUserMenu(false)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", textDecoration: "none", color: "var(--text)", fontSize: 13 }}
-                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--surface2)"}
-                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
-                        <span>{item.icon}</span>{item.label}
-                      </Link>
-                    ))}
-                    <div style={{ borderTop: "1px solid var(--border-color)" }} />
-                    <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", width: "100%", background: "none", border: "none", color: "#EF4444", fontSize: 13, cursor: "pointer" }}>
-                      ↩ Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
+              <Link href="/dashboard/profile" title={displayName} style={{ textDecoration: "none" }}>
+                <Avatar size={32} />
+              </Link>
             </div>
           </div>
 

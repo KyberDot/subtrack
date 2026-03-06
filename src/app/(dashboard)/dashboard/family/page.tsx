@@ -1,40 +1,35 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSubscriptions } from "@/lib/useSubscriptions";
 import { useSettings } from "@/lib/SettingsContext";
 import { toMonthly, fmt, FamilyMember } from "@/types";
 
-const COLORS = ["#6366F1", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#06B6D4", "#84CC16"];
+const COLORS = ["#6366F1","#10B981","#F59E0B","#EF4444","#8B5CF6","#EC4899","#06B6D4","#84CC16","#F97316","#3B82F6"];
 
 export default function FamilyPage() {
   const { subs, loading } = useSubscriptions();
   const { currencySymbol, convertToDisplay } = useSettings();
   const [members, setMembers] = useState<FamilyMember[]>([]);
-  const [showAdd, setShowAdd] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [editMember, setEditMember] = useState<FamilyMember | null>(null);
   const [form, setForm] = useState({ name: "", color: "#6366F1", avatar: "" });
   const [saving, setSaving] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
-    const res = await fetch("/api/family-members");
-    const data = await res.json();
+    const data = await fetch("/api/family-members").then(r => r.json());
     setMembers(Array.isArray(data) ? data : []);
   };
-
   useEffect(() => { load(); }, []);
+
+  const openAdd = () => { setEditMember(null); setForm({ name: "", color: "#6366F1", avatar: "" }); setShowModal(true); };
+  const openEdit = (m: FamilyMember) => { setEditMember(m); setForm({ name: m.name, color: m.color || "#6366F1", avatar: (m as any).avatar || "" }); setShowModal(true); };
 
   const save = async () => {
     setSaving(true);
-    if (editMember) {
-      await fetch(`/api/family-members/${editMember.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-    } else {
-      await fetch("/api/family-members", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-    }
-    await load();
-    setShowAdd(false);
-    setEditMember(null);
-    setForm({ name: "", color: "#6366F1", avatar: "" });
-    setSaving(false);
+    if (editMember) await fetch(`/api/family-members/${editMember.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+    else await fetch("/api/family-members", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+    await load(); setShowModal(false); setSaving(false);
   };
 
   const remove = async (id: number) => {
@@ -43,104 +38,107 @@ export default function FamilyPage() {
     setMembers(prev => prev.filter(m => m.id !== id));
   };
 
-  const activeSubs = subs.filter(s => s.active);
+  const handleAvatarFile = (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    const r = new FileReader();
+    r.onload = e => setForm(p => ({ ...p, avatar: e.target?.result as string }));
+    r.readAsDataURL(file);
+  };
 
-  const Modal = () => (
-    <div className="modal-overlay" onClick={() => { setShowAdd(false); setEditMember(null); }}>
-      <div className="modal-box" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 style={{ fontSize: 17, fontWeight: 700 }}>{editMember ? "Edit Member" : "Add Family Member"}</h2>
-          <button onClick={() => { setShowAdd(false); setEditMember(null); }} style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 18, cursor: "pointer" }}>✕</button>
-        </div>
-        <div className="modal-body">
-          <div>
-            <label style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4, display: "block" }}>Name *</label>
-            <input className="input" placeholder="e.g. Sarah" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
-          </div>
-          <div>
-            <label style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8, display: "block" }}>Color</label>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {COLORS.map(c => (
-                <div key={c} onClick={() => setForm(p => ({ ...p, color: c }))} style={{ width: 28, height: 28, borderRadius: 99, background: c, cursor: "pointer", border: form.color === c ? "3px solid var(--text)" : "3px solid transparent", transition: "all 0.15s" }} />
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="modal-footer">
-          <button className="btn-ghost" onClick={() => { setShowAdd(false); setEditMember(null); }}>Cancel</button>
-          <button className="btn-primary" onClick={save} disabled={saving || !form.name.trim()}>{saving ? "Saving..." : "Save"}</button>
-        </div>
-      </div>
-    </div>
-  );
+  const activeSubs = subs.filter(s => s.active);
 
   if (loading) return <div style={{ color: "var(--muted)" }}>Loading...</div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }} className="fade-in">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700 }}>Family</h1>
-          <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 2 }}>Monthly spending breakdown by family member</p>
-        </div>
-        <button className="btn-primary" onClick={() => { setForm({ name: "", color: "#6366F1", avatar: "" }); setShowAdd(true); }}>+ Add Member</button>
+        <div><h1 style={{ fontSize: 22, fontWeight: 700 }}>Family</h1><p style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>Track subscriptions per family member</p></div>
+        <button className="btn-primary" onClick={openAdd}>+ Add Member</button>
       </div>
 
       {members.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: 48 }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>👨‍👩‍👧</div>
+          <div style={{ fontSize: 38, marginBottom: 10 }}>👨‍👩‍👧</div>
           <div style={{ fontWeight: 600, marginBottom: 6 }}>No family members yet</div>
-          <div style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>Add family members to track who uses which subscriptions</div>
-          <button className="btn-primary" onClick={() => { setForm({ name: "", color: "#6366F1", avatar: "" }); setShowAdd(true); }}>Add First Member</button>
+          <button className="btn-primary" onClick={openAdd}>Add First Member</button>
         </div>
       ) : (
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border-color)", fontWeight: 600, fontSize: 15 }}>Family Spending</div>
-          {members.map((m, i) => {
-            const mSubs = activeSubs.filter(s => s.member_id === m.id);
-            const total = mSubs.reduce((a, s) => a + convertToDisplay(toMonthly(s.amount, s.cycle), s.currency), 0);
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+          {members.map(m => {
+            const memberSubs = activeSubs.filter(s => s.member_id === m.id);
+            const monthly = memberSubs.reduce((a, s) => a + convertToDisplay(toMonthly(s.amount, s.cycle), s.currency), 0);
             return (
-              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: i < members.length - 1 ? "1px solid var(--border-color)" : "none" }}>
-                <div style={{ width: 38, height: 38, borderRadius: 99, background: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "white", fontSize: 14, flexShrink: 0 }}>
-                  {m.name[0]?.toUpperCase()}
+              <div key={m.id} className="card">
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 99, background: m.color || "#6366F1", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "white", fontSize: 20, overflow: "hidden", flexShrink: 0 }}>
+                    {(m as any).avatar ? <img src={(m as any).avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" /> : (m.name[0] || "?").toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>{m.name}</div>
+                    <div style={{ fontSize: 13, color: "var(--muted)" }}>{memberSubs.length} subscription{memberSubs.length !== 1 ? "s" : ""}</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => openEdit(m)} style={{ background: "none", border: "1px solid var(--border-color)", borderRadius: 6, padding: "4px 8px", cursor: "pointer", color: "var(--muted)", fontSize: 12 }}>✏️</button>
+                    <button onClick={() => remove(m.id)} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", padding: "4px 6px", fontSize: 13 }}>🗑️</button>
+                  </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{m.name} <span style={{ color: "var(--muted)", fontWeight: 400, fontSize: 13 }}>({mSubs.length} apps)</span></div>
-                  {mSubs.length > 0 && (
-                    <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
-                      {mSubs.slice(0, 4).map(s => (
-                        <span key={s.id} style={{ fontSize: 11, color: "var(--muted)", background: "var(--surface2)", padding: "1px 6px", borderRadius: 4 }}>{s.name}</span>
-                      ))}
-                      {mSubs.length > 4 && <span style={{ fontSize: 11, color: "var(--muted)" }}>+{mSubs.length - 4} more</span>}
-                    </div>
-                  )}
-                </div>
-                <div style={{ fontWeight: 700, fontSize: 15, color: "var(--accent)", minWidth: 90, textAlign: "right" }}>{currencySymbol}{fmt(total)}/month</div>
-                <button onClick={() => { setEditMember(m); setForm({ name: m.name, color: m.color, avatar: m.avatar || "" }); setShowAdd(true); }} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 14, padding: 4 }}>✏️</button>
-                <button onClick={() => remove(m.id)} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14, padding: 4 }}>🗑️</button>
+                <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>{currencySymbol}{fmt(monthly)}<span style={{ fontSize: 12, fontWeight: 400, color: "var(--muted)" }}>/mo</span></div>
+                {memberSubs.length > 0 && (
+                  <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 5 }}>
+                    {memberSubs.slice(0, 4).map(s => (
+                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12 }}>
+                        {s.icon ? <img src={s.icon} width={16} height={16} style={{ borderRadius: 3, objectFit: "contain" }} alt="" onError={e => (e.currentTarget.style.display = "none")} /> : <span>📦</span>}
+                        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</span>
+                        <span style={{ color: "var(--muted)" }}>{currencySymbol}{fmt(convertToDisplay(toMonthly(s.amount, s.cycle), s.currency))}</span>
+                      </div>
+                    ))}
+                    {memberSubs.length > 4 && <div style={{ fontSize: 11, color: "var(--muted)" }}>+{memberSubs.length - 4} more</div>}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Category breakdown */}
-      {members.length > 0 && (
-        <div className="card">
-          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 16 }}>Unassigned Subscriptions</div>
-          {activeSubs.filter(s => !s.member_id).length === 0
-            ? <div style={{ color: "var(--muted)", fontSize: 14 }}>All subscriptions are assigned to family members ✅</div>
-            : activeSubs.filter(s => !s.member_id).map(s => (
-              <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--border-color)", fontSize: 14 }}>
-                {s.icon && <img src={s.icon} width={22} height={22} style={{ borderRadius: 4 }} alt={s.name} onError={e => (e.currentTarget.style.display = "none")} />}
-                <span style={{ flex: 1 }}>{s.name}</span>
-                <span style={{ color: "var(--muted)" }}>{currencySymbol}{fmt(convertToDisplay(toMonthly(s.amount, s.cycle), s.currency))}/mo</span>
+      {showModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, overflow: "hidden" }}
+          onClick={() => setShowModal(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", overflow: "hidden", border: "1px solid var(--border-color)", boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}>
+            <div style={{ padding: "18px 22px 16px", borderBottom: "1px solid var(--border-color)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>{editMember ? "Edit Member" : "Add Family Member"}</div>
+              <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 18, cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Avatar */}
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ width: 56, height: 56, borderRadius: 99, background: form.color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "white", fontSize: 22, overflow: "hidden", cursor: "pointer", flexShrink: 0 }} onClick={() => fileRef.current?.click()}>
+                  {form.avatar ? <img src={form.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" /> : (form.name[0] || "?").toUpperCase()}
+                </div>
+                <div>
+                  <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && handleAvatarFile(e.target.files[0])} />
+                  <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => fileRef.current?.click()}>Upload Photo</button>
+                  {form.avatar && <button onClick={() => setForm(p => ({ ...p, avatar: "" }))} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 12, marginLeft: 8 }}>Remove</button>}
+                </div>
               </div>
-            ))}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 5, display: "block" }}>Name *</label>
+                <input className="input" placeholder="e.g. Sarah" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} autoFocus />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 8, display: "block" }}>Color</label>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {COLORS.map(c => <div key={c} onClick={() => setForm(p => ({ ...p, color: c }))} style={{ width: 26, height: 26, borderRadius: 6, background: c, cursor: "pointer", border: form.color === c ? "2.5px solid var(--text)" : "2px solid transparent" }} />)}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border-color)", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
+              <button className="btn-primary" onClick={save} disabled={saving || !form.name}>{saving ? "Saving..." : editMember ? "Save" : "Add Member"}</button>
+            </div>
+          </div>
         </div>
       )}
-
-      {(showAdd || editMember) && <Modal />}
     </div>
   );
 }

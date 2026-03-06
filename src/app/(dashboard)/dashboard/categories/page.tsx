@@ -40,9 +40,13 @@ export default function CategoriesPage() {
   };
 
   const remove = async (c: UserCategory) => {
-    if (c.id <= 0) return alert("Cannot delete default categories");
-    if (!confirm(`Delete category "${c.name}"?`)) return;
-    await fetch(`/api/categories/${c.id}`, { method: "DELETE" });
+    if (!confirm(`Delete category "${c.name}"? Subscriptions in this category will be moved to "Other".`)) return;
+    if (c.id > 0) {
+      await fetch(`/api/categories/${c.id}`, { method: "DELETE" });
+    } else {
+      // Default category - create a "hidden" user record to suppress it
+      await fetch("/api/categories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: c.name, icon: c.icon, color: c.color, budget: 0, hidden: true }) });
+    }
     await reloadCategories();
   };
 
@@ -139,13 +143,13 @@ export default function CategoriesPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-box" style={{ maxWidth: 440 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, overflow: "hidden" }} onClick={() => setShowModal(false)}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 460, maxHeight: "88vh", display: "flex", flexDirection: "column", overflow: "hidden", border: "1px solid var(--border-color)", boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} style={{ maxWidth: 440 }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: "18px 22px 16px", borderBottom: "1px solid var(--border-color)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
               <h2 style={{ fontSize: 17, fontWeight: 700 }}>{editCat ? "Edit Category" : "Add Category"}</h2>
               <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 18, cursor: "pointer" }}>✕</button>
             </div>
-            <div className="modal-body">
+            <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 14, overflowY: "auto", flex: 1 }}>
               {/* Icon preview */}
               <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}>
                 <div style={{ width: 56, height: 56, borderRadius: 14, background: form.color + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>{form.icon}</div>
@@ -175,7 +179,7 @@ export default function CategoriesPage() {
                 <input className="input" type="number" min="0" step="1" placeholder="0 = no limit" value={form.budget} onChange={e => setForm(p => ({ ...p, budget: e.target.value }))} />
               </div>
             </div>
-            <div className="modal-footer">
+            <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border-color)", display: "flex", gap: 8, justifyContent: "flex-end", flexShrink: 0 }}>
               <button className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
               <button className="btn-primary" onClick={save} disabled={saving || !form.name.trim()}>{saving ? "Saving..." : "Save"}</button>
             </div>
