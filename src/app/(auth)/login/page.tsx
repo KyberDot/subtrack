@@ -19,8 +19,6 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"password" | "magic" | "forgot">("password");
   const [sent, setSent] = useState(false);
-  const [magicLink, setMagicLink] = useState("");
-  const [mailError, setMailError] = useState("");
 
   // Load platform from localStorage immediately (no flash)
   const [platform, setPlatform] = useState(() => {
@@ -66,8 +64,6 @@ function LoginContent() {
     const d = await r.json();
     if (!r.ok) { setError(d.error || "Failed"); setLoading(false); return; }
     setSent(true);
-    if (d.link) setMagicLink(d.link);
-    if (d.mailError) setMailError(d.mailError);
     setLoading(false);
   };
 
@@ -83,7 +79,7 @@ function LoginContent() {
   const acc = platform.primary_color || "#6366F1";
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)", padding: 16 }}>
+    <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)", padding: 16, overflow: "auto" }}>
       <div style={{ width: "100%", maxWidth: 400 }}>
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 28 }}>
@@ -114,13 +110,7 @@ function LoginContent() {
               <div style={{ color: "var(--muted)", fontSize: 13, marginBottom: 14 }}>
                 {mode === "magic" ? `A magic sign-in link has been sent to ${email}` : `If an account exists, a password reset link was sent to ${email}`}
               </div>
-              {magicLink && (
-                <div style={{ background: "var(--surface2)", borderRadius: 8, padding: "10px 12px", marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>{mailError ? `⚠️ Email failed: ${mailError}` : "Raw link (for testing):"}</div>
-                  <div style={{ fontSize: 11, wordBreak: "break-all", color: acc, cursor: "pointer" }} onClick={() => { navigator.clipboard.writeText(magicLink); }}>{magicLink}</div>
-                  <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4 }}>Click to copy</div>
-                </div>
-              )}
+
               <button className="btn-ghost" onClick={() => { setSent(false); setMagicLink(""); setMode("password"); }} style={{ fontSize: 13 }}>← Back to login</button>
             </div>
           ) : mode === "password" ? (

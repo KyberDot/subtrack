@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useSettings } from "@/lib/SettingsContext";
+import { useToast } from "@/components/Toast";
 import { CURRENCIES } from "@/types";
 import Link from "next/link";
 
@@ -14,6 +15,7 @@ export default function SettingsPage() {
 
   useEffect(() => { setLocal({ ...settings }); }, [settings.currency]);
 
+  const { success } = useToast();
   const save = async () => {
     await saveSettings(local);
     setSaved(true); setTimeout(() => setSaved(false), 2000);

@@ -7,6 +7,7 @@ import SubModal from "@/components/SubModal";
 import AttachmentsPanel from "@/components/AttachmentsPanel";
 import PaymentHistory from "@/components/PaymentHistory";
 import { useSearch } from "@/app/(dashboard)/layout";
+import { useToast } from "@/components/Toast";
 
 export default function BillsPage() {
   const { currencySymbol, convertToDisplay } = useSettings();
@@ -14,6 +15,7 @@ export default function BillsPage() {
   const { search } = useSearch();
   const [showModal, setShowModal] = useState(false);
   const [payHistorySub, setPayHistorySub] = useState<Subscription | null>(null);
+  const { success, error: toastError } = useToast();
   const [editBill, setEditBill] = useState<Subscription | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [sortBy, setSortBy] = useState("date");
@@ -128,20 +130,20 @@ export default function BillsPage() {
               </div>
               {/* Actions - fixed width, no overflow */}
               <div style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
-                <div onClick={() => update(b.id, { active: !b.active })} title={b.active ? "Deactivate" : "Activate"} style={{ width: 30, height: 17, borderRadius: 9, background: b.active ? "var(--accent)" : "var(--border-color)", cursor: "pointer", position: "relative", flexShrink: 0 }}>
+                <div onClick={async () => { await update(b.id, { active: !b.active }); success(b.active ? "Deactivated" : "Activated"); }} title={b.active ? "Deactivate" : "Activate"} style={{ width: 30, height: 17, borderRadius: 9, background: b.active ? "var(--accent)" : "var(--border-color)", cursor: "pointer", position: "relative", flexShrink: 0 }}>
                   <div style={{ position: "absolute", top: 2, left: b.active ? 15 : 2, width: 13, height: 13, borderRadius: 7, background: "white", transition: "left 0.18s" }} />
                 </div>
 <button onClick={() => setPayHistorySub(b)} title="Payment history" style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 13, padding: "2px 2px", lineHeight: 1 }}>💰</button>
                 <AttachmentsPanel subId={b.id} label="" />
                 <button style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 13, padding: "2px 2px" }} onClick={() => { setEditBill(b); setShowModal(true); }}>✏️</button>
-                <button style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 13, padding: "2px 2px" }} onClick={() => { if (confirm(`Delete ${b.name}?`)) remove(b.id); }}>🗑️</button>
+                <button style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 13, padding: "2px 2px" }} onClick={async () => { if (confirm(`Delete ${b.name}?`)) { await remove(b.id); success("Bill deleted"); } }}>🗑️</button>
               </div>
             </div>
           );
         })}
       </div>
       {payHistorySub && <PaymentHistory sub={payHistorySub} onClose={() => setPayHistorySub(null)} />}
-      {showModal && <SubModal sub={editBill} defaultType="bill" familyMembers={familyMembers} paymentMethods={paymentMethods} onSave={async (data) => { editBill ? await update(editBill.id, data) : await add(data); setShowModal(false); setEditBill(null); }} onClose={() => { setShowModal(false); setEditBill(null); }} />}
+      {showModal && <SubModal sub={editBill} defaultType="bill" familyMembers={familyMembers} paymentMethods={paymentMethods} onSave={async (data) => { try { editBill ? await update(editBill.id, data) : await add(data); success(editBill ? "Bill updated" : "Bill added"); setShowModal(false); setEditBill(null); } catch { toastError("Failed to save bill"); } }} onClose={() => { setShowModal(false); setEditBill(null); }} />}
     </div>
   );
 }

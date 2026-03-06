@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useSettings } from "@/lib/SettingsContext";
+import { useToast } from "@/components/Toast";
 
 export default function ProfilePage() {
   const { data: session } = useSession();
@@ -12,6 +13,7 @@ export default function ProfilePage() {
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [pwMsg, setPwMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [saving, setSaving] = useState(false);
+  const { success, error: toastError } = useToast();
   const [avatar, setAvatar] = useState<string | null>(userAvatar);
   const fileRef = useRef<HTMLInputElement>(null);
   const acc = platform.primary_color || "#6366F1";

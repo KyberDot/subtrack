@@ -387,7 +387,7 @@ export default function SubModal({ sub, defaultType = "subscription", onSave, on
             </div>
             {step < STEPS.length - 1
               ? <button className="btn-primary" onClick={() => setStep(s => s + 1)} disabled={!canNext()} style={{ fontSize: 13 }}>Continue →</button>
-              : <button className="btn-primary" onClick={handleSave} disabled={saving || !form.name || !form.amount} style={{ fontSize: 13 }}>
+              : <button className="btn-primary" onClick={handleSave} disabled={saving || !form.name || (form.cycle !== "variable" && !form.amount)} style={{ fontSize: 13 }}>
                   {saving ? "Saving..." : isEditing ? "Save Changes" : `Add ${form.type === "bill" ? "Bill" : "Subscription"}`}
                 </button>}
           </div>

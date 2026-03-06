@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { getMailTransporter } from "@/lib/mailer";
+import { emailTemplate } from "@/lib/emailTemplate";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -18,8 +19,13 @@ export async function POST(req: NextRequest) {
     const toAddr = body.to || session.user?.email;
     await mail.transporter.sendMail({
       from: mail.from, to: toAddr,
-      subject: `✓ Mail test from ${mail.appName}`,
-      html: `<div style="font-family:sans-serif;max-width:480px;margin:auto"><h2>✓ Mail server working!</h2><p>Your SMTP configuration is correct.</p></div>`,
+      subject: `✓ Mail server test — ${mail.appName}`,
+      html: emailTemplate({
+        appName: mail.appName,
+        title: "Mail server is working!",
+        body: `Your SMTP configuration is correctly set up. Emails from <strong style="color:#ffffff">${mail.appName}</strong> will be delivered successfully.<br><br><span style="font-size:13px;color:#6B7280">Sent to: ${toAddr}</span>`,
+        footer: `This is an automated test email from ${mail.appName}.`,
+      }),
     });
     return NextResponse.json({ ok: true, message: `Test email sent to ${toAddr}` });
   } catch (err: any) {

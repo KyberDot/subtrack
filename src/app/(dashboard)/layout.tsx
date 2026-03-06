@@ -76,7 +76,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SearchContext.Provider value={{ search }}>
-      <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg)" }}>
+      <div style={{ display: "flex", height: "100vh", overflow: "clip", background: "var(--bg)" }}>
         
         {/* Sidebar */}
         <div style={{ width: collapsed ? 52 : 218, background: "var(--surface)", borderRight: "1px solid var(--border-color)", height: "100%", display: "flex", flexDirection: "column", flexShrink: 0, overflowY: "auto", overflowX: "hidden", transition: "width 0.2s ease" }}>
@@ -173,7 +173,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Main */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
           {/* Top bar - no logout button, just search + notifications + settings + avatar */}
           <div style={{ height: 54, borderBottom: "1px solid var(--border-color)", display: "flex", alignItems: "center", paddingLeft: 16, paddingRight: 16, background: "var(--surface)", flexShrink: 0, gap: 10 }}>
             <div style={{ flex: 1, maxWidth: 480, position: "relative" }}>

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { getMailTransporter } from "@/lib/mailer";
+import { emailTemplate } from "@/lib/emailTemplate";
 import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
@@ -13,30 +15,27 @@ export async function POST(req: NextRequest) {
   db.prepare("INSERT INTO magic_tokens (email, token, expires_at) VALUES (?, ?, ?)").run(email, token, expires);
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
   const link = `${baseUrl}/login?magic=${token}`;
-  if (platform.mail_host) {
+  const mail = getMailTransporter();
+  if (mail) {
     try {
-      const nodemailer = require("nodemailer");
-      const port = Number(platform.mail_port) || 587;
-      // secure=true only for port 465 (SSL); port 587/25 use STARTTLS (secure=false + requireTLS)
-      const isSSL = port === 465 || !!platform.mail_secure;
-      const transporter = nodemailer.createTransport({
-        host: platform.mail_host,
-        port,
-        secure: isSSL,
-        ...(isSSL ? {} : { requireTLS: true }),
-        auth: platform.mail_user ? { user: platform.mail_user, pass: platform.mail_pass } : undefined,
-        tls: { rejectUnauthorized: false },
-      });
-      await transporter.sendMail({
-        from: platform.mail_from || `${platform.app_name || "Vexyo"} <noreply@vexyo.app>`,
-        to: email,
-        subject: `Sign in to ${platform.app_name || "Vexyo"}`,
-        html: `<div style="font-family:sans-serif;max-width:480px;margin:auto"><h2>Sign in to ${platform.app_name || "Vexyo"}</h2><p>Click the button below to sign in. This link expires in 15 minutes.</p><p><a href="${link}" style="background:#6366F1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600">Sign In</a></p><p style="color:#999;font-size:12px">Or paste: ${link}</p></div>`,
+      await mail.transporter.sendMail({
+        from: mail.from, to: email,
+        subject: `Sign in to ${mail.appName}`,
+        html: emailTemplate({
+          appName: mail.appName,
+          title: "Sign in to your account",
+          body: "Click the button below to sign in to your account. This link is valid for 15 minutes and can only be used once.",
+          buttonText: "Sign In Now",
+          buttonUrl: link,
+          footer: `Sent to ${email} · If you didn't request this, you can safely ignore it.`,
+        }),
       });
       return NextResponse.json({ ok: true, sent: true });
     } catch (e: any) {
-      return NextResponse.json({ ok: true, sent: false, link, mailError: e.message });
+      // NEVER expose the link to the user - just show error
+      return NextResponse.json({ ok: false, error: "Failed to send email. Please try password login or contact your administrator." }, { status: 500 });
     }
   }
-  return NextResponse.json({ ok: true, sent: false, link });
+  // No mail configured - admin only mode, don't expose link to end users
+  return NextResponse.json({ ok: false, error: "Email service not configured. Please contact your administrator." }, { status: 503 });
 }

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { getMailTransporter } from "@/lib/mailer";
+import { emailTemplate } from "@/lib/emailTemplate";
 import crypto from "crypto";
 
 async function isAdmin() {
@@ -26,6 +27,12 @@ export async function POST(req: NextRequest) {
   const { email } = await req.json();
   if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
   const db = getDb();
+  // Check if user already exists
+  const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email) as any;
+  if (existing) return NextResponse.json({ error: "A user with this email already exists on the platform." }, { status: 409 });
+  // Check for pending invite
+  const pendingInvite = db.prepare("SELECT id FROM invites WHERE email = ? AND used = 0").get(email) as any;
+  if (pendingInvite) return NextResponse.json({ error: "An invite has already been sent to this email." }, { status: 409 });
   const token = crypto.randomBytes(32).toString("hex");
   db.prepare("INSERT INTO invites (email, token, invited_by) VALUES (?, ?, ?)").run(email, token, (session.user as any).id);
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
@@ -36,8 +43,15 @@ export async function POST(req: NextRequest) {
     try {
       await mail.transporter.sendMail({
         from: mail.from, to: email,
-        subject: `You're invited to ${mail.appName}`,
-        html: `<div style="font-family:sans-serif;max-width:480px;margin:auto"><h2>You're invited!</h2><p>You've been invited to join <strong>${mail.appName}</strong>.</p><p><a href="${invite_url}" style="background:#6366F1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600">Accept Invitation</a></p><p style="color:#999;font-size:12px">Or copy: ${invite_url}</p></div>`,
+        subject: `You're invited to join ${mail.appName}`,
+        html: emailTemplate({
+          appName: mail.appName,
+          title: "You've been invited!",
+          body: `You've been invited to join <strong style="color:#ffffff">${mail.appName}</strong>. Click the button below to create your account and get started.`,
+          buttonText: "Accept Invitation",
+          buttonUrl: invite_url,
+          footer: `Invited by an administrator · This invite link expires after use.`,
+        }),
       });
       emailed = true;
     } catch {}

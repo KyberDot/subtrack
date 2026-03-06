@@ -62,7 +62,7 @@ export default function PaymentsPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }} className="fade-in">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div><h1 style={{ fontSize: 22, fontWeight: 700 }}>Payment Methods</h1><p style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>Manage your cards and payment accounts</p></div>
+        <div><h1 style={{ fontSize: 22, fontWeight: 700 }}>Wallet</h1><p style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>Manage your payment methods and accounts</p></div>
         <button className="btn-primary" onClick={() => { setEditMethod(null); setForm({ label: "", type: "card", last4: "", brand: "Visa", icon: "", member_id: null, is_default: false }); setIconMode("emoji"); setShowModal(true); }}>+ Add Method</button>
       </div>
 

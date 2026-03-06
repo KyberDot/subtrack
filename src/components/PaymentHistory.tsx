@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Subscription, fmt } from "@/types";
 import { useSettings } from "@/lib/SettingsContext";
+import { useToast } from "@/components/Toast";
 import { useSubscriptions } from "@/lib/useSubscriptions";
 
 interface Props {
@@ -17,6 +18,7 @@ export default function PaymentHistory({ sub, onClose }: Props) {
   const [note, setNote] = useState("");
   const [amount, setAmount] = useState(sub.cycle === "variable" ? "" : String(sub.amount));
   const [saving, setSaving] = useState(false);
+  const { success, error: toastError } = useToast();
 
   const load = async () => {
     setLoading(true);
@@ -46,6 +48,7 @@ export default function PaymentHistory({ sub, onClose }: Props) {
     setNote("");
     await load();
     setSaving(false);
+    success("Payment recorded");
   };
 
   const deletePayment = async (id: number) => {
