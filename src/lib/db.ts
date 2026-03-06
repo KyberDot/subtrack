@@ -282,7 +282,7 @@ function migrate(db: Database.Database) {
     `ALTER TABLE users ADD COLUMN plan_expires_at TEXT`,
     `ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'en'`,
     `ALTER TABLE notification_settings ADD COLUMN overdue_alerts INTEGER DEFAULT 1`,
-    `ALTER TABLE invites ADD COLUMN expires_at TEXT DEFAULT (datetime('now', '+3 days'))`,
+    `ALTER TABLE invites ADD COLUMN expires_at TEXT`,
     `ALTER TABLE shared_links ADD COLUMN currency TEXT`,
   ];
   for (const sql of alters) { try { db.exec(sql); } catch {} }
