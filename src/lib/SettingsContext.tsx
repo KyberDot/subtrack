@@ -6,7 +6,7 @@ import { type Lang, TRANSLATIONS, t as translate } from "@/lib/i18n";
 interface Settings {
   currency: string; theme: string;
   remind_3d: boolean; remind_7d: boolean; remind_14d: boolean;
-  monthly_budget: number; date_format: string; week_start: string;
+  monthly_budget: number; date_format: string; week_start: string; language: string;
 }
 interface SettingsCtx {
   settings: Settings; saveSettings: (s: Settings) => Promise<void>;
