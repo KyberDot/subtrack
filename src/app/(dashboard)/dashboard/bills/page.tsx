@@ -12,11 +12,15 @@ import { useToast } from "@/components/Toast";
 function displayAmount(s: Subscription, convertToDisplay: (a: number, c: string) => number, currencySymbol: string) {
   if (s.cycle === "variable") return { main: "Variable", sub: "", isVariable: true };
   const conv = convertToDisplay(s.amount, s.currency);
-  if (s.cycle === "yearly") return { main: `${currencySymbol}${fmt(conv)}`, sub: "yearly", isVariable: false };
-  if (s.cycle === "6-months") return { main: `${currencySymbol}${fmt(conv)}`, sub: "6-month", isVariable: false };
-  if (s.cycle === "quarterly") return { main: `${currencySymbol}${fmt(conv)}`, sub: "quarterly", isVariable: false };
-  if (s.cycle === "weekly") return { main: `${currencySymbol}${fmt(conv)}`, sub: "weekly", isVariable: false };
-  return { main: `${currencySymbol}${fmt(convertToDisplay(toMonthly(s.amount, s.cycle), s.currency))}`, sub: "/mo", isVariable: false };
+  
+  // Consistency fix: Added "/" and capitalized labels for all cycles
+  if (s.cycle === "yearly") return { main: `${currencySymbol}${fmt(conv)}`, sub: "/ Year", isVariable: false };
+  if (s.cycle === "6-months") return { main: `${currencySymbol}${fmt(conv)}`, sub: "/ 6-Months", isVariable: false };
+  if (s.cycle === "quarterly") return { main: `${currencySymbol}${fmt(conv)}`, sub: "/ Quarter", isVariable: false };
+  if (s.cycle === "weekly") return { main: `${currencySymbol}${fmt(conv)}`, sub: "/ Week", isVariable: false };
+  
+  // Monthly default
+  return { main: `${currencySymbol}${fmt(convertToDisplay(toMonthly(s.amount, s.cycle), s.currency))}`, sub: "/ Month", isVariable: false };
 }
 
 export default function BillsPage() {
@@ -118,7 +122,25 @@ export default function BillsPage() {
                   {b.icon ? <img src={b.icon} width={26} height={26} style={{ objectFit: "contain" }} alt="" onError={e => (e.currentTarget.style.display = "none")} /> : <span>🧾</span>}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</div>
+                    {/* Fixed Trial Badge: Added isolation spacing to prevent icon bleed */}
+                    {b.trial && (
+                      <span style={{ 
+                        background: "#EF4444", 
+                        color: "#fff", 
+                        fontSize: 9, 
+                        padding: "1px 5px", 
+                        borderRadius: 3, 
+                        fontWeight: 800,
+                        marginLeft: 4,
+                        display: "inline-block",
+                        lineHeight: "1.4"
+                      }}>
+                        TRIAL
+                      </span>
+                    )}
+                  </div>
                   {b.member_name && <div style={{ fontSize: 11, color: "var(--accent)" }}>{b.member_name}</div>}
                 </div>
               </div>
@@ -128,7 +150,7 @@ export default function BillsPage() {
                 {display.isVariable ? (
                   <div style={{ fontWeight: 400, fontSize: 13, color: "var(--muted)", fontStyle: "italic" }}>Variable</div>
                 ) : (
-                  <div style={{ fontWeight: 700, fontSize: 13 }}>{display.main}<span style={{ fontWeight: 400, color: "var(--muted)", fontSize: 10 }}>{display.sub}</span></div>
+                  <div style={{ fontWeight: 700, fontSize: 13 }}>{display.main}<span style={{ fontWeight: 400, color: "var(--muted)", fontSize: 10, marginLeft: 2 }}>{display.sub}</span></div>
                 )}
               </div>
               <div style={{ fontSize: 12 }}>
@@ -139,7 +161,6 @@ export default function BillsPage() {
                   <div style={{ color: "var(--muted)", fontSize: 10 }}>{b.next_date}</div>
                 </> : <span style={{ opacity: 0.4 }}>—</span>}
               </div>
-              {/* Actions - aligned with subscriptions page */}
               <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end", flexShrink: 0 }}>
                 <div onClick={async () => { await update(b.id, { active: !b.active }); success(b.active ? "Deactivated" : "Activated"); }} title={b.active ? "Deactivate" : "Activate"} style={{ width: 30, height: 17, borderRadius: 9, background: b.active ? "var(--accent)" : "var(--border-color)", cursor: "pointer", position: "relative", flexShrink: 0 }}>
                   <div style={{ position: "absolute", top: 2, left: b.active ? 15 : 2, width: 13, height: 13, borderRadius: 7, background: "white", transition: "left 0.18s" }} />
