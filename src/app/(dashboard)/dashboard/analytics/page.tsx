@@ -7,7 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 
 export default function AnalyticsPage() {
   const { subs } = useSubscriptions();
-  const { currencySymbol, convertToDisplay, categories, settings } = useSettings();
+  const { currencySymbol, convertToDisplay, categories, settings, t } = useSettings();
 
   const activeSubs = subs.filter(s => s.active && s.type !== "bill");
   const activeBills = subs.filter(s => s.active && s.type === "bill");
@@ -52,11 +52,11 @@ export default function AnalyticsPage() {
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
         {[
-          { label: "Monthly (Subs)", value: `${currencySymbol}${fmt(monthlyTotal)}`, sub: `${activeSubs.length} subscriptions`, color: "var(--accent)" },
-          { label: "Monthly (Bills)", value: `${currencySymbol}${fmt(billsTotal)}`, sub: `${activeBills.length} bills`, color: "#F59E0B" },
-          { label: "Yearly Total", value: `${currencySymbol}${fmt((monthlyTotal + billsTotal) * 12)}`, sub: "Subs + bills", color: "#10B981" },
-          { label: "Avg per Sub", value: `${currencySymbol}${fmt(avgPerSub)}`, sub: "per month", color: "#8B5CF6" },
-          { label: "Due in 7 days", value: String(upcoming7), sub: "renewals upcoming", color: "#EF4444" },
+          { label: t("monthlySubs"), value: `${currencySymbol}${fmt(monthlyTotal)}`, sub: `${activeSubs.length} subscriptions`, color: "var(--accent)" },
+          { label: t("monthlyBills"), value: `${currencySymbol}${fmt(billsTotal)}`, sub: `${activeBills.length} bills`, color: "#F59E0B" },
+          { label: t("yearlyTotal"), value: `${currencySymbol}${fmt((monthlyTotal + billsTotal) * 12)}`, sub: t("subsPlus"), color: "#10B981" },
+          { label: t("avgPerSub"), value: `${currencySymbol}${fmt(avgPerSub)}`, sub: t("perMonth"), color: "#8B5CF6" },
+          { label: t("dueIn7"), value: String(upcoming7), sub: t("renewalsUpcoming"), color: "#EF4444" },
         ].map(({ label, value, sub, color }) => (
           <div key={label} className="card">
             <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{label}</div>
@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
                 <XAxis type="number" tick={{ fontSize: 11, fill: "var(--muted)" }} axisLine={false} tickLine={false} tickFormatter={v => `${currencySymbol}${v}`} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "var(--muted)" }} axisLine={false} tickLine={false} width={90} />
                 <Tooltip formatter={(v: any) => [`${currencySymbol}${v}`, "Monthly"]} contentStyle={{ background: "#1A1D27", border: "1px solid #2A2D3A", borderRadius: 8, fontSize: 12, color: "#F1F5F9" }} labelStyle={{ color: "#94A3B8" }} itemStyle={{ color: "#F1F5F9" }} />
-                <Bar dataKey="spend" radius={4} cursor="default" activeBar={{ fillOpacity: 0.85, stroke: "none" }}>
+                <Bar dataKey="spend" radius={4} cursor="default" isAnimationActive={false} activeBar={false}>
                   {catData.map((c, i) => <Cell key={i} fill={c.color} />)}
                 </Bar>
               </BarChart>

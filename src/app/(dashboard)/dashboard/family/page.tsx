@@ -50,8 +50,6 @@ export default function FamilyPage() {
 
   const activeSubs = subs.filter(s => s.active);
 
-  if (loading) return <div style={{ color: "var(--muted)" }}>Loading...</div>;
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }} className="fade-in">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

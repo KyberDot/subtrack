@@ -59,14 +59,14 @@ export default function SubscriptionsPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }} className="fade-in">
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700 }}>Subscriptions</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700 }}>{t("subscriptions")}</h1>
           <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>Manage all your recurring subscription payments</p>
         </div>
         <button className="btn-primary" onClick={() => { setEditSub(null); setShowModal(true); }}>+ {t("addSubscription")}</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-        {[["Monthly", `${currencySymbol}${fmt(monthly)}`, `${active.length} active`],["Yearly", `${currencySymbol}${fmt(monthly * 12)}`, "Annualized"],["Active", String(active.length), `${allSubs.length} total`],["Upcoming", String(upcoming7), "Next 7 days"]].map(([l,v,s]) => (
+        {[["Monthly", `${currencySymbol}${fmt(monthly)}`, `${active.length} active`],["Yearly", `${currencySymbol}${fmt(monthly * 12)}`, t("annualized")],["Active", String(active.length), `${allSubs.length} total`],["Upcoming", String(upcoming7), t("next7Days")]].map(([l,v,s]) => (
           <div key={l} className="card"><div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 5 }}>{l}</div><div style={{ fontSize: 20, fontWeight: 800 }}>{v}</div><div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>{s}</div></div>
         ))}
       </div>

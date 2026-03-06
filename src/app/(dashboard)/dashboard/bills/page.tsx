@@ -56,14 +56,14 @@ export default function BillsPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }} className="fade-in">
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700 }}>Bills</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700 }}>{t("bills")}</h1>
           <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 2 }}>Track all your recurring bills and due dates</p>
         </div>
         <button className="btn-primary" onClick={() => { setEditBill(null); setShowModal(true); }}>+ {t("addBill")}</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-        {[["Monthly Total", `${currencySymbol}${fmt(monthly)}`, `${active.length} active`],["Yearly", `${currencySymbol}${fmt(monthly * 12)}`, "Annualized"],["Overdue", String(overdue), overdue > 0 ? "Needs attention" : "All good"],["Due Soon", String(dueSoon), "Within 3 days"]].map(([l,v,s],i) => (
+        {[["Monthly Total", `${currencySymbol}${fmt(monthly)}`, `${active.length} active`],["Yearly", `${currencySymbol}${fmt(monthly * 12)}`, "Annualized"],[t("overdueBills"), String(overdue), overdue > 0 ? t("needsAttention") : t("allGood")],[t("dueSoon"), String(dueSoon), t("within3Days")]].map(([l,v,s],i) => (
           <div key={l} className="card">
             <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 5 }}>{l}</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: i===2&&overdue>0?"#EF4444":i===3&&dueSoon>0?"#F59E0B":"var(--text)" }}>{v}</div>
@@ -89,7 +89,7 @@ export default function BillsPage() {
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         {/* Fixed columns that won't overflow */}
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 96px", padding: "9px 16px", borderBottom: "1px solid var(--border-color)", background: "var(--surface2)" }}>
-          {["Bill","Category","Amount","Due Date",""].map(h => <div key={h} style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{h}</div>)}
+          {[t("service"),t("category"),t("amount"),t("dueDate"),""].map(h => <div key={h} style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{h}</div>)}
         </div>
         {bills.length === 0 ? (
           <div style={{ padding: 48, textAlign: "center" }}>

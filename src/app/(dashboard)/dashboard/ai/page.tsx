@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useSubscriptions } from "@/lib/useSubscriptions";
+import { useSettings } from "@/lib/SettingsContext";
 
 interface Message { role: "user" | "assistant"; text: string; }
 
@@ -13,6 +14,7 @@ const SUGGESTIONS = [
 
 export default function AIPage() {
   const { reload } = useSubscriptions();
+  const { t } = useSettings();
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", text: "Hi! I can help you manage your subscriptions. Try asking me to add one, or ask about your spending.\n\nExamples:\n• \"Add Netflix $17.99 monthly\"\n• \"What's my biggest expense?\"\n• \"Am I spending too much on software?\"" }
   ]);
@@ -38,7 +40,7 @@ export default function AIPage() {
       });
       const data = await res.json();
       setMessages(prev => [...prev, { role: "assistant", text: data.reply }]);
-      if (data.addedSub) reload();
+      if (data.actionResult) reload();
     } catch {
       setMessages(prev => [...prev, { role: "assistant", text: "Sorry, something went wrong. Please try again." }]);
     }

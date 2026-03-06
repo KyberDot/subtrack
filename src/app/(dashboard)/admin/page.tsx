@@ -37,7 +37,7 @@ const TEMPLATE_NAMES: Record<string, string> = { magic_link: "Magic Link Email",
 const TEMPLATE_VARS: Record<string, string[]> = { magic_link: ["{{appName}}", "{{link}}", "{{email}}"], invite: ["{{appName}}", "{{link}}"], password_reset: ["{{appName}}", "{{link}}"], renewal_reminder: ["{{name}}", "{{days}}", "{{date}}", "{{amount}}", "{{appName}}"] };
 
 export default function AdminPage() {
-  const { userRole, platform, savePlatform } = useSettings();
+  const { userRole, platform, savePlatform, t } = useSettings();
   const { success, error: toastError } = useToast();
   const [users, setUsers] = useState<any[]>([]);
   const [invites, setInvites] = useState<any[]>([]);
@@ -83,11 +83,13 @@ export default function AdminPage() {
   const sendInvite = async () => {
     if (!inviteEmail) return;
     setInviting(true);
-    const r = await fetch("/api/admin/invite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: inviteEmail }) });
-    const d = await r.json();
-    if (!r.ok) toastError(d.error || "Failed to send invite");
-    else { success(d.emailed ? `Invite sent to ${inviteEmail}` : `Invite created for ${inviteEmail}`); setInviteEmail(""); loadInvites(); }
-    setInviting(false);
+    try {
+      const r = await fetch("/api/admin/invite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: inviteEmail }) });
+      const d = await r.json();
+      if (!r.ok) toastError(d.error || "Failed to send invite");
+      else { success(d.emailed ? `Invite sent to ${inviteEmail}` : `Invite link created for ${inviteEmail}`); setInviteEmail(""); loadInvites(); }
+    } catch { toastError("Network error. Please try again."); }
+    finally { setInviting(false); }
   };
 
   const deleteInvite = async (id: number) => { await fetch("/api/admin/invite", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }); loadInvites(); success("Invite cancelled"); };

@@ -127,7 +127,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--surface2)"; (e.currentTarget as HTMLElement).style.color = "var(--text)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = pathname === "/admin" ? `rgba(var(--accent-rgb), 0.12)` : "transparent"; (e.currentTarget as HTMLElement).style.color = pathname === "/admin" ? "var(--accent)" : "var(--muted)"; }}>
                   <span style={{ fontSize: 15 }}>🛡️</span>
-                  {!collapsed && <span>Admin Portal</span>}
+                  {!collapsed && <span>{t("adminPortal")}</span>}
                 </Link>
               </div>
             )}
