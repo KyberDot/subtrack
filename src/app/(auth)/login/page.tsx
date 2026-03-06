@@ -73,7 +73,6 @@ function LoginContent() {
     const r = await fetch("/api/auth/forgot-password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
     const d = await r.json();
     setSent(true); setLoading(false);
-    if (d.link) setMagicLink(d.link);
   };
 
   const acc = platform.primary_color || "#6366F1";
@@ -111,7 +110,7 @@ function LoginContent() {
                 {mode === "magic" ? `A magic sign-in link has been sent to ${email}` : `If an account exists, a password reset link was sent to ${email}`}
               </div>
 
-              <button className="btn-ghost" onClick={() => { setSent(false); setMagicLink(""); setMode("password"); }} style={{ fontSize: 13 }}>← Back to login</button>
+              <button className="btn-ghost" onClick={() => { setSent(false); setMode("password"); }} style={{ fontSize: 13 }}>← Back to login</button>
             </div>
           ) : mode === "password" ? (
             <form onSubmit={login} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
