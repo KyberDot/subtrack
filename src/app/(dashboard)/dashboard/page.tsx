@@ -124,7 +124,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Budget + Upcoming side by side */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" }}>
         {/* Budget tracker */}
         <div className="card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
@@ -170,8 +170,8 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Upcoming renewals */}
-        <div className="card" style={{ display: "flex", flexDirection: "column", height: "fit-content", maxHeight: "400px" }}>
+        {/* Upcoming renewals - FIXED VERSION */}
+        <div className="card" style={{ height: "420px", display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 16 }}>Upcoming Renewals</div>
@@ -180,7 +180,8 @@ export default function DashboardPage() {
             <Link href="/dashboard/subscriptions" style={{ fontSize: 13, color: accentColor, textDecoration: "none", fontWeight: 600 }}>View All →</Link>
           </div>
           
-          <div style={{ overflowY: "auto", flex: 1, paddingRight: "4px" }}>
+          {/* Scroll wrapper starts here */}
+          <div style={{ overflowY: "auto", flex: 1, paddingRight: 4 }}>
             {upcomingRenewals.length === 0 ? (
               <div style={{ textAlign: "center", padding: "24px 0", color: "var(--muted)", fontSize: 14 }}>🎉 No renewals in the next 7 days</div>
             ) : upcomingRenewals.map(s => {
@@ -215,7 +216,6 @@ export default function DashboardPage() {
           </LineChart>
         </ResponsiveContainer>
       </div>
-
 
       {/* Debts summary */}
       {debts.filter(d => d.active && (d.amount - d.paid) > 0).length > 0 && (
