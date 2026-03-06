@@ -125,7 +125,7 @@ export default function AttachmentsPanel({ subId, debtId, label = "Attachments" 
             </div>
           </div>
         </div>
-      )}
+      </ModalPortal>)}
 
       {/* Viewer modal */}
       {viewing && (

@@ -179,7 +179,7 @@ export default function DebtsPage() {
             </div>
           </div>
         </div>
-      )}
-    </div></ModalPortal>
+      </ModalPortal>)}
+    </div>
   );
 }

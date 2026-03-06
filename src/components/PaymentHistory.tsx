@@ -121,6 +121,6 @@ export default function PaymentHistory({ sub, onClose }: Props) {
             ))}
         </div>
       </div>
-    </div>
+    </div></ModalPortal>
   );
 }
