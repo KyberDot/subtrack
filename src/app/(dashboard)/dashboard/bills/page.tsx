@@ -155,11 +155,8 @@ export default function BillsPage() {
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <div style={{ fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</div>
-                    {isDD && (
-                      <span style={{ background: "rgba(59,130,246,0.15)", color: "#3B82F6", fontSize: 9, padding: "2px 5px 2px 5px", borderRadius: 3, fontWeight: 800, flexShrink: 0, display: "inline-flex", alignItems: "center", lineHeight: "12px", height: 16 }}>DIRECT DEBIT</span>
-                    )}
                     {b.trial && (
-                      <span style={{ background: "#EF4444", color: "#fff", fontSize: 9, padding: "2px 5px 2px 5px", borderRadius: 3, fontWeight: 800, flexShrink: 0, display: "inline-flex", alignItems: "center", lineHeight: "12px", height: 16 }}>TRIAL</span>
+                      <span style={{ background: "#EF4444", color: "#fff", fontSize: 9, padding: "2px 5px", borderRadius: 3, fontWeight: 800, flexShrink: 0, display: "inline-flex", alignItems: "center", lineHeight: "12px", height: 16 }}>TRIAL</span>
                     )}
                   </div>
                   {b.member_name && <div style={{ fontSize: 11, color: "var(--accent)" }}>{b.member_name}</div>}
@@ -167,7 +164,10 @@ export default function BillsPage() {
               </div>
 
               <div style={{ fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.category}</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.payment_method_label || "—"}</div>
+              <div style={{ fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {b.payment_method_label || "—"}
+                {isDD && <div style={{ fontSize: 10, color: "#3B82F6", fontWeight: 700, marginTop: 1 }}>DD</div>}
+              </div>
 
               <div>
                 {display.isVariable ? (
