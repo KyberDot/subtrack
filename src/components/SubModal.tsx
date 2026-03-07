@@ -47,11 +47,9 @@ const SubModal = memo(function SubModal({ sub, defaultType = "subscription", onS
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [quickSearch, setQuickSearch] = useState("");
-  // Determine initial icon mode from sub data
   const initIconMode = (): "upload" | "website" | "url" => {
     if (!sub?.icon) return "website";
     if (sub.icon.startsWith("data:")) return "upload";
-    // If icon looks like a URL typed by user (not auto-fetched clearbit/google), use url mode
     if (sub.icon.startsWith("http") && !sub.icon.includes("clearbit.com") && !sub.icon.includes("google.com/s2")) return "url";
     return "website";
   };
@@ -80,11 +78,11 @@ const SubModal = memo(function SubModal({ sub, defaultType = "subscription", onS
     remind_3d: sub ? !!(sub as any).remind_3d : false,
     remind_7d: sub ? !!(sub as any).remind_7d : false,
     remind_14d: sub ? !!(sub as any).remind_14d : false,
+    direct_debit: sub ? !!(sub as any).direct_debit : false,
   }));
 
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
 
-  // Auto-fetch icon only in website mode
   useEffect(() => {
     if (!form.name || iconMode !== "website") return;
     clearTimeout(iconTimer.current);
@@ -144,9 +142,8 @@ const SubModal = memo(function SubModal({ sub, defaultType = "subscription", onS
 
   return (
     <ModalPortal><div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(5px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, overflow: "hidden" }}>
-      {/* No onClick on backdrop - close only via X button */}
       <div style={{ background: "var(--surface)", borderRadius: 16, width: "100%", maxWidth: 700, height: "min(92vh, 640px)", display: "flex", flexDirection: "column", overflow: "hidden", border: "1px solid var(--border-color)", boxShadow: "0 24px 60px rgba(0,0,0,0.4)" }}>
-        
+
         {/* Header */}
         <div style={{ padding: "18px 24px 14px", borderBottom: "1px solid var(--border-color)", flexShrink: 0, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div>
@@ -160,9 +157,9 @@ const SubModal = memo(function SubModal({ sub, defaultType = "subscription", onS
           <button onClick={onClose} style={{ background: "none", border: "1px solid var(--border-color)", borderRadius: 7, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--muted)", fontSize: 14, flexShrink: 0 }}>✕</button>
         </div>
 
-        {/* Body: sidebar + scrollable content */}
+        {/* Body */}
         <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          
+
           {/* Step nav */}
           <div style={{ width: 150, borderRight: "1px solid var(--border-color)", padding: "14px 8px", display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
             {STEPS.map((label, i) => {
@@ -190,7 +187,6 @@ const SubModal = memo(function SubModal({ sub, defaultType = "subscription", onS
             {/* STEP 0: SERVICE */}
             {step === 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                {/* Type toggle */}
                 <div style={{ display: "flex", gap: 6 }}>
                   {(["subscription","bill"] as const).map(t => (
                     <button key={t} type="button" onClick={() => set("type", t)} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${form.type === t ? "var(--accent)" : "var(--border-color)"}`, background: form.type === t ? "rgba(var(--accent-rgb),0.08)" : "var(--surface2)", color: form.type === t ? "var(--accent)" : "var(--muted)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
@@ -198,8 +194,6 @@ const SubModal = memo(function SubModal({ sub, defaultType = "subscription", onS
                     </button>
                   ))}
                 </div>
-
-                {/* Quick select */}
                 {form.type === "subscription" && (
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Quick Select</div>
@@ -218,8 +212,6 @@ const SubModal = memo(function SubModal({ sub, defaultType = "subscription", onS
                     </div>
                   </div>
                 )}
-
-                {/* Name + Category */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 5, display: "block" }}>Service Name *</label>
@@ -232,15 +224,11 @@ const SubModal = memo(function SubModal({ sub, defaultType = "subscription", onS
                     </select>
                   </div>
                 </div>
-
-                {/* Website */}
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 5, display: "block" }}>Website URL</label>
                   <input className="input" placeholder="https://netflix.com" value={form.website || ""} onChange={e => set("website", e.target.value)} />
                   <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Used to auto-fetch logo</div>
                 </div>
-
-                {/* Logo */}
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 8, display: "block" }}>Logo</label>
                   <div style={{ display: "flex", borderRadius: 8, border: "1px solid var(--border-color)", overflow: "hidden", marginBottom: 12 }}>
@@ -331,12 +319,24 @@ const SubModal = memo(function SubModal({ sub, defaultType = "subscription", onS
                   </div>
                 )}
 
+                {/* Free trial — subscriptions only */}
                 {form.type === "subscription" && (
                   <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "12px 14px", borderRadius: 8, border: `1px solid ${form.trial ? "#EF4444" : "var(--border-color)"}`, background: form.trial ? "rgba(239,68,68,0.06)" : "transparent" }}>
                     <input type="checkbox" checked={!!form.trial} onChange={e => set("trial", e.target.checked)} style={{ accentColor: "#EF4444", width: 15, height: 15, flexShrink: 0 }} />
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 500 }}>🔴 Free trial</div>
                       <div style={{ fontSize: 12, color: "var(--muted)" }}>Flags as trial and sends reminders before it ends</div>
+                    </div>
+                  </label>
+                )}
+
+                {/* Direct Debit — bills only */}
+                {form.type === "bill" && (
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "12px 14px", borderRadius: 8, border: `1px solid ${form.direct_debit ? "#3B82F6" : "var(--border-color)"}`, background: form.direct_debit ? "rgba(59,130,246,0.06)" : "transparent" }}>
+                    <input type="checkbox" checked={!!form.direct_debit} onChange={e => set("direct_debit", e.target.checked)} style={{ accentColor: "#3B82F6", width: 15, height: 15, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 500 }}>🏦 Direct Debit</div>
+                      <div style={{ fontSize: 12, color: "var(--muted)" }}>Marks this bill as collected automatically via direct debit</div>
                     </div>
                   </label>
                 )}
@@ -348,13 +348,8 @@ const SubModal = memo(function SubModal({ sub, defaultType = "subscription", onS
               <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 5, display: "block" }}>Next {form.type === "bill" ? "Due Date" : "Renewal Date"}</label>
-                  {/* Use controlled value with proper onChange to avoid day reset */}
                   <input className="input" type="date" value={form.next_date || getToday()}
-                    onChange={e => {
-                      // Only update if we have a complete valid date (prevents partial typing issues)
-                      const val = e.target.value;
-                      if (val) set("next_date", val);
-                    }} />
+                    onChange={e => { const val = e.target.value; if (val) set("next_date", val); }} />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 5, display: "block" }}>Payment Method</label>
@@ -389,7 +384,12 @@ const SubModal = memo(function SubModal({ sub, defaultType = "subscription", onS
                     <img src={form.icon} width={38} height={38} style={{ borderRadius: 8, objectFit: "contain", flexShrink: 0, background: "var(--surface)", padding: 3 }} alt="" onError={e => (e.currentTarget.style.display = "none")} />
                   )}
                   <div>
-                    <div style={{ fontWeight: 700 }}>{form.name || "—"}</div>
+                    <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                      {form.name || "—"}
+                      {form.direct_debit && (
+                        <span style={{ background: "rgba(59,130,246,0.15)", color: "#3B82F6", fontSize: 9, padding: "1px 5px", borderRadius: 3, fontWeight: 800, letterSpacing: "0.04em" }}>DD</span>
+                      )}
+                    </div>
                     <div style={{ fontSize: 13, color: "var(--muted)" }}>
                       {form.category} · {form.cycle} · {form.currency} {form.cycle === "variable" ? "Variable" : form.amount}
                     </div>

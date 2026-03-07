@@ -141,6 +141,7 @@ export default function BillsPage() {
           const days = b.next_date ? daysUntil(b.next_date) : null;
           const isOverdue = days !== null && days < 0;
           const isSoon = days !== null && days >= 0 && days <= 3;
+          const isDD = !!(b as any).direct_debit;
           return (
             <div key={b.id}
               style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 136px", padding: "11px 16px", borderBottom: i < bills.length - 1 ? "1px solid var(--border-color)" : "none", alignItems: "center", opacity: b.active ? 1 : 0.55 }}
@@ -152,10 +153,23 @@ export default function BillsPage() {
                   {b.icon ? <img src={b.icon} width={26} height={26} style={{ objectFit: "contain" }} alt="" onError={e => (e.currentTarget.style.display = "none")} /> : <span>🧾</span>}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <div style={{ fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</div>
+                    {isDD && (
+                      <span style={{
+                        background: "rgba(59,130,246,0.15)",
+                        color: "#3B82F6",
+                        fontSize: 9,
+                        padding: "1px 5px",
+                        borderRadius: 3,
+                        fontWeight: 800,
+                        letterSpacing: "0.04em",
+                        flexShrink: 0,
+                        lineHeight: "1.4",
+                      }}>DD</span>
+                    )}
                     {b.trial && (
-                      <span style={{ background: "#EF4444", color: "#fff", fontSize: 9, padding: "1px 5px", borderRadius: 3, fontWeight: 800, marginLeft: 4, display: "inline-block", lineHeight: "1.4" }}>TRIAL</span>
+                      <span style={{ background: "#EF4444", color: "#fff", fontSize: 9, padding: "1px 5px", borderRadius: 3, fontWeight: 800, flexShrink: 0, lineHeight: "1.4" }}>TRIAL</span>
                     )}
                   </div>
                   {b.member_name && <div style={{ fontSize: 11, color: "var(--accent)" }}>{b.member_name}</div>}
