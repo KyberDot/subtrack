@@ -44,7 +44,11 @@ export default function PaymentsPage() {
       fetch("/api/payment-methods").then(r => r.json()), 
       fetch("/api/family-members").then(r => r.json())
     ]);
-    const mArr = Array.isArray(mr) ? mr.map((m: any) => ({ ...m, is_default: !!m.is_default, attachments: m.attachments ? (typeof m.attachments === 'string' ? JSON.parse(m.attachments) : m.attachments) : [] })) : [];
+    const mArr = Array.isArray(mr) ? mr.map((m: any) => ({ 
+        ...m, 
+        is_default: !!m.is_default, 
+        attachments: m.attachments ? (typeof m.attachments === 'string' ? JSON.parse(m.attachments) : m.attachments) : [] 
+    })) : [];
     const fArr = Array.isArray(fmr) ? fmr : [];
     _methodsCache = mArr; _methodsMembers = fArr; _methodsTime = Date.now();
     setMethods(mArr); setMembers(fArr);
@@ -73,6 +77,17 @@ export default function PaymentsPage() {
       await fetch("/api/payment-methods", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     }
     await load(true); setShowModal(false); setSaving(false);
+  };
+
+  const setDefault = async (id: number) => {
+    await fetch(`/api/payment-methods/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_default: true }) });
+    await load(true);
+  };
+
+  const del = async (id: number, label: string) => {
+    if (!confirm(`Delete "${label}"?`)) return;
+    await fetch(`/api/payment-methods/${id}`, { method: "DELETE" });
+    setMethods(p => p.filter(m => m.id !== id));
   };
 
   const updateBalance = async (method: any) => {
@@ -137,7 +152,7 @@ export default function PaymentsPage() {
                 {balanceAction?.id === m.id && (
                   <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
                     <input className="input" type="number" step="0.01" placeholder="Amount" value={balanceDelta} onChange={e => setBalanceDelta(e.target.value)} style={{ flex: 1, height: 32 }} />
-                    <button onClick={() => updateBalance(m)} className="btn-primary" style={{ padding: "0 10px", fontSize: 12 }}>OK</button>
+                    <button onClick={() => updateBalance(m)} className="btn-primary" style={{ padding: "0 10px", fontSize: 12, height: 32 }}>OK</button>
                   </div>
                 )}
               </div>
@@ -146,6 +161,7 @@ export default function PaymentsPage() {
                 <button className="btn-ghost" style={{ fontSize: 11, padding: "4px 8px" }} onClick={() => { setEditMethod(m); setForm({ ...m }); setShowModal(true); }}>✏️ Edit</button>
                 <AttachmentsPanel label="Docs" attachments={m.attachments || []} onChange={(files) => handleExternalAttachments(m.id, files)} />
                 {!m.is_default && <button className="btn-ghost" style={{ fontSize: 11, padding: "4px 8px" }} onClick={() => setDefault(m.id)}>Set Default</button>}
+                <button style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", marginLeft: "auto", padding: "4px" }} onClick={() => del(m.id, m.label)}>🗑️</button>
               </div>
             </div>
           );
@@ -162,7 +178,6 @@ export default function PaymentsPage() {
               </div>
               
               <div style={{ flex: 1, overflowY: "auto", padding: "24px", display: "flex", flexDirection: "column", gap: 20 }}>
-                {/* Account Type Grid */}
                 <section>
                   <label style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", marginBottom: 10, display: "block", textTransform: "uppercase" }}>Account Type</label>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
