@@ -13,13 +13,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   const db = getDb();
-  const fields = ["name","amount","currency","paid","icon","color","member_id","company","due_date","notes","active"];
-  const updates: string[] = []; const values: any[] = [];
+  const fields = ["name","amount","currency","paid","icon","color","member_id","company","due_date","notes","active","term"];
+  const updates: string[] = [];
+  const values: any[] = [];
   for (const f of fields) {
-    if (f in body) { updates.push(`${f} = ?`); values.push(typeof body[f] === "boolean" ? (body[f] ? 1 : 0) : body[f]); }
+    if (f in body) {
+      updates.push(`${f} = ?`);
+      values.push(typeof body[f] === "boolean" ? (body[f] ? 1 : 0) : body[f]);
+    }
   }
   if (!updates.length) return NextResponse.json({ error: "No fields" }, { status: 400 });
-  updates.push("updated_at = datetime('now')"); values.push(params.id, userId);
+  updates.push("updated_at = datetime('now')");
+  values.push(params.id, userId);
   db.prepare(`UPDATE debts SET ${updates.join(", ")} WHERE id = ? AND user_id = ?`).run(...values);
   return NextResponse.json({ ok: true });
 }

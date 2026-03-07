@@ -210,7 +210,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Upcoming renewals — original layout exactly */}
-        <div className="card" style={{ maxHeight: "300px", display: "flex", flexDirection: "column" }}>
+        <div className="card" style={{ maxHeight: "320px", display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexShrink: 0 }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 16 }}>🔔 Upcoming Renewals</div>
