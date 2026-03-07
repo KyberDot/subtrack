@@ -37,8 +37,14 @@ export default function SubscriptionsPage() {
   const [payHistorySub, setPayHistorySub] = useState<Subscription | null>(null);
   const { success, error: toastError } = useToast();
   const [editSub, setEditSub] = useState<Subscription | null>(null);
-  const [filterCat, setFilterCat] = useState("All");
-  const [sortBy, setSortBy] = useState("name");
+  const [filterCat, setFilterCat] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("subs_filterCat") || "All";
+    return "All";
+  });
+  const [sortBy, setSortBy] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("subs_sortBy") || "name";
+    return "name";
+  });
   const [showInactive, setShowInactive] = useState(false);
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
@@ -52,6 +58,16 @@ export default function SubscriptionsPage() {
       setPaymentMethods(Array.isArray(pm) ? pm.map((m: any) => ({ ...m, is_default: !!m.is_default })) : []);
     });
   }, []);
+
+  const handleSortBy = (v: string) => {
+    setSortBy(v);
+    localStorage.setItem("subs_sortBy", v);
+  };
+
+  const handleFilterCat = (v: string) => {
+    setFilterCat(v);
+    localStorage.setItem("subs_filterCat", v);
+  };
 
   const filtered = useMemo(() => {
     return subs
@@ -90,11 +106,11 @@ export default function SubscriptionsPage() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <select className="select" value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ height: 34, fontSize: 13 }}>
+        <select className="select" value={filterCat} onChange={e => handleFilterCat(e.target.value)} style={{ height: 34, fontSize: 13 }}>
           <option value="All">{t("allCategories")}</option>
           {categories.map(c => <option key={c.name} value={c.name}>{c.icon} {c.name}</option>)}
         </select>
-        <select className="select" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ height: 34, fontSize: 13 }}>
+        <select className="select" value={sortBy} onChange={e => handleSortBy(e.target.value)} style={{ height: 34, fontSize: 13 }}>
           <option value="name">Sort: Name</option>
           <option value="amount">Sort: Amount</option>
           <option value="date">Sort: Next Date</option>
@@ -128,7 +144,6 @@ export default function SubscriptionsPage() {
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--surface2)"}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
 
-              {/* Service */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 8, background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
                   {s.icon ? <img src={s.icon} width={26} height={26} style={{ objectFit: "contain" }} alt="" onError={e => (e.currentTarget.style.display = "none")} /> : <span>📦</span>}
@@ -142,13 +157,9 @@ export default function SubscriptionsPage() {
                 </div>
               </div>
 
-              {/* Category */}
               <div style={{ fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.category}</div>
-
-              {/* Payment method */}
               <div style={{ fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.payment_method_label || "—"}</div>
 
-              {/* Amount */}
               <div>
                 {display.isVariable
                   ? <div style={{ fontSize: 13, color: "var(--muted)", fontStyle: "italic" }}>Variable</div>
@@ -156,7 +167,6 @@ export default function SubscriptionsPage() {
                 }
               </div>
 
-              {/* Next billing */}
               <div style={{ fontSize: 12 }}>
                 {s.next_date ? <>
                   <div style={{ color: isOverdue ? "#EF4444" : isSoon ? "#F59E0B" : "var(--text)", fontWeight: isOverdue || isSoon ? 600 : 400 }}>
@@ -166,9 +176,7 @@ export default function SubscriptionsPage() {
                 </> : <span style={{ opacity: 0.4 }}>—</span>}
               </div>
 
-              {/* Actions — fixed 136px, all framed, no overflow */}
               <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end", flexShrink: 0 }}>
-                {/* Toggle */}
                 <div
                   onClick={async () => { await update(s.id, { active: !s.active }); success(s.active ? "Deactivated" : "Activated"); }}
                   title={s.active ? "Deactivate" : "Activate"}

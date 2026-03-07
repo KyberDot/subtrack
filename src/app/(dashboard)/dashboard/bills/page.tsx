@@ -38,7 +38,10 @@ export default function BillsPage() {
   const { success, error: toastError } = useToast();
   const [editBill, setEditBill] = useState<Subscription | null>(null);
   const [showInactive, setShowInactive] = useState(false);
-  const [sortBy, setSortBy] = useState("date");
+  const [sortBy, setSortBy] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("bills_sortBy") || "date";
+    return "date";
+  });
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
 
@@ -51,6 +54,11 @@ export default function BillsPage() {
       setPaymentMethods(Array.isArray(pm) ? pm.map((m: any) => ({ ...m, is_default: !!m.is_default })) : []);
     });
   }, []);
+
+  const handleSortBy = (v: string) => {
+    setSortBy(v);
+    localStorage.setItem("bills_sortBy", v);
+  };
 
   const bills = useMemo(() => {
     return subs
@@ -96,7 +104,7 @@ export default function BillsPage() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <select className="select" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ height: 34, fontSize: 13 }}>
+        <select className="select" value={sortBy} onChange={e => handleSortBy(e.target.value)} style={{ height: 34, fontSize: 13 }}>
           <option value="date">Sort: Due Date</option>
           <option value="name">Sort: Name</option>
           <option value="amount">Sort: Amount</option>
@@ -167,7 +175,6 @@ export default function BillsPage() {
                 </> : <span style={{ opacity: 0.4 }}>—</span>}
               </div>
 
-              {/* Actions — matches subs page exactly */}
               <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end", flexShrink: 0 }}>
                 <div
                   onClick={async () => { await update(b.id, { active: !b.active }); success(b.active ? "Deactivated" : "Activated"); }}
