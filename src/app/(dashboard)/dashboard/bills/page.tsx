@@ -30,7 +30,7 @@ const iconBtn: React.CSSProperties = {
 const iconBtnRed: React.CSSProperties = { ...iconBtn, color: "#EF4444", borderColor: "rgba(239,68,68,0.3)" };
 
 export default function BillsPage() {
-  const { currencySymbol, convertToDisplay, t } = useSettings();
+  const { currencySymbol, convertToDisplay, categories, t } = useSettings();
   const { subs, loading, add, update, remove } = useSubscriptions();
   const { search } = useSearch();
   const [showModal, setShowModal] = useState(false);
@@ -41,6 +41,10 @@ export default function BillsPage() {
   const [sortBy, setSortBy] = useState(() => {
     if (typeof window !== "undefined") return localStorage.getItem("bills_sortBy") || "date";
     return "date";
+  });
+  const [filterCat, setFilterCat] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("bills_filterCat") || "All";
+    return "All";
   });
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
@@ -55,22 +59,21 @@ export default function BillsPage() {
     });
   }, []);
 
-  const handleSortBy = (v: string) => {
-    setSortBy(v);
-    localStorage.setItem("bills_sortBy", v);
-  };
+  const handleSortBy = (v: string) => { setSortBy(v); localStorage.setItem("bills_sortBy", v); };
+  const handleFilterCat = (v: string) => { setFilterCat(v); localStorage.setItem("bills_filterCat", v); };
 
   const bills = useMemo(() => {
     return subs
       .filter(s => s.type === "bill")
       .filter(s => showInactive ? !s.active : s.active)
+      .filter(s => filterCat === "All" || s.category?.includes(filterCat) || s.category === filterCat)
       .filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.category?.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => {
         if (sortBy === "amount") return convertToDisplay(toMonthly(b.amount, b.cycle), b.currency) - convertToDisplay(toMonthly(a.amount, a.cycle), a.currency);
         if (sortBy === "date" && a.next_date && b.next_date) return new Date(a.next_date).getTime() - new Date(b.next_date).getTime();
         return a.name.localeCompare(b.name);
       });
-  }, [subs, showInactive, search, sortBy]);
+  }, [subs, showInactive, filterCat, search, sortBy]);
 
   const allBills = subs.filter(s => s.type === "bill");
   const active = allBills.filter(b => b.active);
@@ -104,6 +107,10 @@ export default function BillsPage() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <select className="select" value={filterCat} onChange={e => handleFilterCat(e.target.value)} style={{ height: 34, fontSize: 13 }}>
+          <option value="All">{t("allCategories")}</option>
+          {categories.map(c => <option key={c.name} value={c.name}>{c.icon} {c.name}</option>)}
+        </select>
         <select className="select" value={sortBy} onChange={e => handleSortBy(e.target.value)} style={{ height: 34, fontSize: 13 }}>
           <option value="date">Sort: Due Date</option>
           <option value="name">Sort: Name</option>
