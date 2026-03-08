@@ -35,7 +35,7 @@ export default function PaymentsPage() {
   const [saving, setSaving] = useState(false);
   const { search } = useSearch();
   const [activeTab, setActiveTab] = useState<"all" | "debit" | "credit">("all");
-  const [balanceAction, setBalanceAction] = useState<{ id: number; type: "add" | "remove" | "owed" | "paid" } | null>(null);
+  const [balanceAction, setBalanceAction] = useState<{ id: number; type: "add" | "remove" } | null>(null);
   const [balanceDelta, setBalanceDelta] = useState("");
   const [iconMode, setIconMode] = useState<"auto" | "upload" | "url">("auto");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -133,16 +133,23 @@ export default function PaymentsPage() {
     const delta = Number(balanceDelta);
     if (!delta || !balanceAction) return;
     let body: any = {};
+    const isBnplAccount = m.account_type === "bnpl";
     if (balanceAction.type === "add") {
-      body = { balance: (Number(m.balance) || 0) + delta };
+      // Charge: increase balance (debit) or owed (bnpl/credit)
+      if (isBnplAccount) {
+        body = { bnpl_owed: (Number(m.bnpl_owed) || 0) + delta };
+      } else {
+        body = { balance: (Number(m.balance) || 0) + delta };
+      }
     } else if (balanceAction.type === "remove") {
-      body = { balance: Math.max(0, (Number(m.balance) || 0) - delta) };
-    } else if (balanceAction.type === "owed") {
-      body = { bnpl_owed: (Number(m.bnpl_owed) || 0) + delta };
-    } else if (balanceAction.type === "paid") {
-      const newPaid = (Number(m.bnpl_paid) || 0) + delta;
-      const newOwed = Math.max(0, (Number(m.bnpl_owed) || 0) - delta);
-      body = { bnpl_paid: newPaid, bnpl_owed: newOwed };
+      // Pay off: decrease balance (debit) or owed + increase paid (bnpl/credit)
+      if (isBnplAccount) {
+        const newOwed = Math.max(0, (Number(m.bnpl_owed) || 0) - delta);
+        const newPaid = (Number(m.bnpl_paid) || 0) + delta;
+        body = { bnpl_owed: newOwed, bnpl_paid: newPaid };
+      } else {
+        body = { balance: Math.max(0, (Number(m.balance) || 0) - delta) };
+      }
     }
     await fetch(`/api/payment-methods/${m.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     setBalanceDelta(""); setBalanceAction(null);
@@ -299,9 +306,11 @@ export default function PaymentsPage() {
             const bnplPaid = Number(m.bnpl_paid) || 0;
             const bnplTotal = bnplOwed + bnplPaid;
             const bnplLimit = m.bnpl_flexible ? null : (Number(m.bnpl_limit) || null);
-            const bnplPct = bnplTotal > 0 ? Math.min(100, (bnplPaid / bnplTotal) * 100) : 0;
-            const bnplUsedPct = bnplLimit ? Math.min(100, (bnplOwed / bnplLimit) * 100) : 0;
+            const bnplAvailable = bnplLimit ? bnplLimit - bnplOwed : 0;
+            const bnplUsedPct = bnplLimit ? (bnplOwed / bnplLimit) * 100 : 0;
+            const bnplColor = bnplUsedPct > 100 ? "#EF4444" : bnplUsedPct > 80 ? "#EF4444" : bnplUsedPct > 50 ? "#F59E0B" : bnplOwed > 0 ? "#F59E0B" : "var(--muted)";
             const bnplLimitColor = bnplUsedPct > 80 ? "#EF4444" : bnplUsedPct > 50 ? "#F59E0B" : "#10B981";
+            const bnplPct = bnplTotal > 0 ? Math.min(100, (bnplPaid / bnplTotal) * 100) : 0;
 
             const isExpanded = balanceAction?.id === m.id;
 
@@ -325,12 +334,15 @@ export default function PaymentsPage() {
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.label}</span>
                         {m.is_default && <span style={{ background: "rgba(var(--accent-rgb),0.12)", color: "var(--accent)", fontSize: 9, borderRadius: 4, padding: "1px 5px", fontWeight: 800, flexShrink: 0 }}>DEFAULT</span>}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{m.last4 ? `•••• ${m.last4}` : (m.currency || "USD")}</div>
+                      {m.last4 && <div style={{ fontSize: 11, color: "var(--muted)" }}>•••• {m.last4}</div>}
                     </div>
                   </div>
 
-                  {/* Type */}
-                  <div style={{ fontSize: 12, color: "var(--muted)" }}>{at.label}</div>
+                  {/* Type + currency */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    <div style={{ fontSize: 12, color: "var(--muted)" }}>{at.label}</div>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", background: "var(--surface2)", border: "1px solid var(--border-color)", borderRadius: 4, padding: "1px 5px", alignSelf: "flex-start" }}>{m.currency || "USD"}</span>
+                  </div>
 
                   {/* Balance / status column */}
                   <div style={{ minWidth: 0 }}>
@@ -363,17 +375,20 @@ export default function PaymentsPage() {
                     {isBnpl && (
                       <div>
                         <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-                          <span style={{ fontWeight: 700, fontSize: 14, color: bnplOwed > 0 ? "#EF4444" : "var(--text)" }}>{balSym}{fmt(bnplOwed)} owed</span>
-                          <span style={{ fontSize: 11, color: "#10B981", fontWeight: 600 }}>{balSym}{fmt(bnplPaid)} paid</span>
+                          <span style={{ fontWeight: 700, fontSize: 14, color: bnplOwed > 0 ? bnplColor : "var(--text)" }}>{balSym}{fmt(bnplOwed)} owed</span>
+                          {(bnplLimit || m.bnpl_flexible) && (
+                            <span style={{ fontSize: 11, color: bnplAvailable < 0 ? "#EF4444" : "#10B981", fontWeight: 600 }}>
+                              {bnplAvailable < 0 ? `−${balSym}${fmt(Math.abs(bnplAvailable))} over` : m.bnpl_flexible ? "flexible" : `${balSym}${fmt(bnplAvailable)} avail`}
+                            </span>
+                          )}
                         </div>
-                        {bnplTotal > 0 && (
+                        {bnplLimit && (
                           <div style={{ marginTop: 5, height: 4, background: "var(--surface2)", borderRadius: 2, overflow: "hidden", maxWidth: 160 }}>
-                            <div style={{ width: `${bnplPct}%`, height: "100%", background: "#10B981", borderRadius: 2, transition: "width 0.4s" }} />
+                            <div style={{ width: `${Math.min(100, bnplUsedPct)}%`, height: "100%", background: bnplColor, borderRadius: 2, transition: "width 0.4s" }} />
                           </div>
                         )}
-                        <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>
-                          {bnplLimit ? `Limit: ${balSym}${fmt(bnplLimit)}` : "♾️ Flexible"}
-                        </div>
+                        {bnplUsedPct > 100 && <div style={{ fontSize: 10, color: "#EF4444", fontWeight: 700, marginTop: 2 }}>⚠ Over limit</div>}
+                        {!bnplLimit && !m.bnpl_flexible && bnplPaid > 0 && <div style={{ fontSize: 10, color: "#10B981", marginTop: 2 }}>{balSym}{fmt(bnplPaid)} paid total</div>}
                       </div>
                     )}
                   </div>
@@ -388,25 +403,25 @@ export default function PaymentsPage() {
                     {!isExpanded && isDebit && (
                       <>
                         <button onClick={() => { setBalanceAction({ id: m.id, type: "add" }); setBalanceDelta(""); }}
-                          style={{ padding: "4px 9px", borderRadius: 6, border: "1px solid rgba(16,185,129,0.35)", background: "rgba(16,185,129,0.07)", color: "#10B981", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: 1.4 }}>+ Add</button>
+                          style={{ width: 64, height: 28, borderRadius: 6, border: "1px solid rgba(16,185,129,0.35)", background: "rgba(16,185,129,0.07)", color: "#10B981", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>+ Add</button>
                         <button onClick={() => { setBalanceAction({ id: m.id, type: "remove" }); setBalanceDelta(""); }}
-                          style={{ padding: "4px 9px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.07)", color: "#EF4444", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: 1.4 }}>− Remove</button>
+                          style={{ width: 64, height: 28, borderRadius: 6, border: "1px solid rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.07)", color: "#EF4444", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>− Remove</button>
                       </>
                     )}
                     {!isExpanded && isCredit && (
                       <>
                         <button onClick={() => { setBalanceAction({ id: m.id, type: "add" }); setBalanceDelta(""); }}
-                          style={{ padding: "4px 9px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.07)", color: "#EF4444", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: 1.4 }}>+ Charge</button>
+                          style={{ width: 64, height: 28, borderRadius: 6, border: "1px solid rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.07)", color: "#EF4444", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>+ Charge</button>
                         <button onClick={() => { setBalanceAction({ id: m.id, type: "remove" }); setBalanceDelta(""); }}
-                          style={{ padding: "4px 9px", borderRadius: 6, border: "1px solid rgba(16,185,129,0.35)", background: "rgba(16,185,129,0.07)", color: "#10B981", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: 1.4 }}>− Pay Off</button>
+                          style={{ width: 64, height: 28, borderRadius: 6, border: "1px solid rgba(16,185,129,0.35)", background: "rgba(16,185,129,0.07)", color: "#10B981", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>− Pay Off</button>
                       </>
                     )}
                     {!isExpanded && isBnpl && (
                       <>
-                        <button onClick={() => { setBalanceAction({ id: m.id, type: "owed" }); setBalanceDelta(""); }}
-                          style={{ padding: "4px 9px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.07)", color: "#EF4444", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: 1.4 }}>+ Owed</button>
-                        <button onClick={() => { setBalanceAction({ id: m.id, type: "paid" }); setBalanceDelta(""); }}
-                          style={{ padding: "4px 9px", borderRadius: 6, border: "1px solid rgba(16,185,129,0.35)", background: "rgba(16,185,129,0.07)", color: "#10B981", fontSize: 11, cursor: "pointer", fontWeight: 700, lineHeight: 1.4 }}>✓ Paid</button>
+                        <button onClick={() => { setBalanceAction({ id: m.id, type: "add" }); setBalanceDelta(""); }}
+                          style={{ width: 64, height: 28, borderRadius: 6, border: "1px solid rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.07)", color: "#EF4444", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>+ Charge</button>
+                        <button onClick={() => { setBalanceAction({ id: m.id, type: "remove" }); setBalanceDelta(""); }}
+                          style={{ width: 64, height: 28, borderRadius: 6, border: "1px solid rgba(16,185,129,0.35)", background: "rgba(16,185,129,0.07)", color: "#10B981", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>− Pay Off</button>
                       </>
                     )}
                     <div style={{ width: 1, height: 14, background: "var(--border-color)", margin: "0 3px", flexShrink: 0 }} />
@@ -428,10 +443,8 @@ export default function PaymentsPage() {
                     <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8, fontWeight: 600 }}>
                       {balanceAction?.type === "add" && isDebit && "Add funds"}
                       {balanceAction?.type === "remove" && isDebit && "Remove funds"}
-                      {balanceAction?.type === "add" && isCredit && "Record a charge"}
-                      {balanceAction?.type === "remove" && isCredit && "Record a payment"}
-                      {balanceAction?.type === "owed" && "Add to owed balance"}
-                      {balanceAction?.type === "paid" && "Mark amount as paid"}
+                      {balanceAction?.type === "add" && (isCredit || isBnpl) && "Record a charge"}
+                      {balanceAction?.type === "remove" && (isCredit || isBnpl) && "Record a payment"}
                     </div>
                     <div style={{ display: "flex", gap: 8, maxWidth: 380 }}>
                       <input className="input" type="number" step="0.01" min="0"
