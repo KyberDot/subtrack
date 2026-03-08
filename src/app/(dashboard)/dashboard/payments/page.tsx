@@ -332,7 +332,7 @@ export default function PaymentsPage() {
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 5 }}>
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.label}</span>
-                        {m.is_default && <span style={{ background: "rgba(var(--accent-rgb),0.12)", color: "var(--accent)", fontSize: 9, borderRadius: 4, padding: "1px 5px", fontWeight: 800, flexShrink: 0 }}>DEFAULT</span>}
+                        {m.is_default && <span style={{ background: "rgba(var(--accent-rgb),0.12)", color: "var(--accent)", fontSize: 9, borderRadius: 4, padding: "2px 6px", fontWeight: 800, flexShrink: 0, lineHeight: "14px", display: "inline-flex", alignItems: "center" }}>DEFAULT</span>}
                       </div>
                       <div style={{ fontSize: 11, color: "var(--muted)" }}>{m.last4 ? `•••• ${m.last4}` : (m.currency || "USD")}</div>
                     </div>
@@ -354,39 +354,42 @@ export default function PaymentsPage() {
                     )}
                     {isCredit && (
                       <div>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-                          <span style={{ fontWeight: 700, fontSize: 14, color: creditUsed > 0 ? creditColor : "var(--text)" }}>{balSym}{fmt(creditUsed)} used</span>
-                          {creditLimit > 0 && (
-                            <span style={{ fontSize: 11, color: creditAvailable < 0 ? "#EF4444" : "#10B981", fontWeight: 600 }}>
-                              {creditAvailable < 0 ? `−${balSym}${fmt(Math.abs(creditAvailable))} over` : `${balSym}${fmt(creditAvailable)} avail`}
-                            </span>
-                          )}
-                        </div>
-                        {creditLimit > 0 && (
-                          <div style={{ marginTop: 5, height: 4, background: "var(--surface2)", borderRadius: 2, overflow: "hidden", maxWidth: 160 }}>
-                            <div style={{ width: `${Math.min(100, creditPct)}%`, height: "100%", background: creditColor, borderRadius: 2, transition: "width 0.4s" }} />
-                          </div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: creditUsed > 0 ? creditColor : "var(--text)" }}>{balSym}{fmt(creditUsed)}</div>
+                        {creditLimit > 0 ? (
+                          <>
+                            <div style={{ marginTop: 4, height: 4, background: "var(--surface2)", borderRadius: 2, overflow: "hidden", maxWidth: 140 }}>
+                              <div style={{ width: `${Math.min(100, creditPct)}%`, height: "100%", background: creditPct > 100 ? "#EF4444" : creditColor, borderRadius: 2, transition: "width 0.4s" }} />
+                            </div>
+                            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                              {creditPct > 100
+                                ? <span style={{ color: "#EF4444", fontWeight: 700 }}>⚠ {balSym}{fmt(Math.abs(creditAvailable))} over limit</span>
+                                : <>{balSym}{fmt(creditAvailable)} of {balSym}{fmt(creditLimit)} left</>}
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 1 }}>no limit set</div>
                         )}
-                        {creditPct > 100 && <div style={{ fontSize: 10, color: "#EF4444", fontWeight: 700, marginTop: 2 }}>⚠ Over limit</div>}
                       </div>
                     )}
                     {isBnpl && (
                       <div>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-                          <span style={{ fontWeight: 700, fontSize: 14, color: bnplOwed > 0 ? bnplColor : "var(--text)" }}>{balSym}{fmt(bnplOwed)} owed</span>
-                          {(bnplLimit || m.bnpl_flexible) && (
-                            <span style={{ fontSize: 11, color: bnplAvailable < 0 ? "#EF4444" : "#10B981", fontWeight: 600 }}>
-                              {bnplAvailable < 0 ? `−${balSym}${fmt(Math.abs(bnplAvailable))} over` : m.bnpl_flexible ? "flexible" : `${balSym}${fmt(bnplAvailable)} avail`}
-                            </span>
-                          )}
-                        </div>
-                        {bnplLimit && (
-                          <div style={{ marginTop: 5, height: 4, background: "var(--surface2)", borderRadius: 2, overflow: "hidden", maxWidth: 160 }}>
-                            <div style={{ width: `${Math.min(100, bnplUsedPct)}%`, height: "100%", background: bnplColor, borderRadius: 2, transition: "width 0.4s" }} />
-                          </div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: bnplOwed > 0 ? bnplColor : "var(--text)" }}>{balSym}{fmt(bnplOwed)}</div>
+                        {bnplLimit ? (
+                          <>
+                            <div style={{ marginTop: 4, height: 4, background: "var(--surface2)", borderRadius: 2, overflow: "hidden", maxWidth: 140 }}>
+                              <div style={{ width: `${Math.min(100, bnplUsedPct)}%`, height: "100%", background: bnplUsedPct > 100 ? "#EF4444" : bnplColor, borderRadius: 2, transition: "width 0.4s" }} />
+                            </div>
+                            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                              {bnplUsedPct > 100
+                                ? <span style={{ color: "#EF4444", fontWeight: 700 }}>⚠ {balSym}{fmt(Math.abs(bnplAvailable))} over limit</span>
+                                : <>{balSym}{fmt(bnplAvailable)} of {balSym}{fmt(bnplLimit)} left</>}
+                            </div>
+                          </>
+                        ) : m.bnpl_flexible ? (
+                          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 1 }}>♾️ flexible limit</div>
+                        ) : (
+                          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 1 }}>no limit set</div>
                         )}
-                        {bnplUsedPct > 100 && <div style={{ fontSize: 10, color: "#EF4444", fontWeight: 700, marginTop: 2 }}>⚠ Over limit</div>}
-                        {!bnplLimit && !m.bnpl_flexible && bnplPaid > 0 && <div style={{ fontSize: 10, color: "#10B981", marginTop: 2 }}>{balSym}{fmt(bnplPaid)} paid total</div>}
                       </div>
                     )}
                   </div>
